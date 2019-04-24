@@ -62,34 +62,64 @@ mod tests {
     use crate as kuba;
 
     #[test]
-    fn get() {
+    fn get2() {
         let grid_map = kuba::GridMap2f::from_ndarray(
             nd::array![[1.0, 2.0], [10.0, 20.0]],
             0.1,
-            kuba::Bounds2 {
-                min: kuba::Point2::new(0.0, 0.0),
-                max: kuba::Point2::new(0.2, 0.2),
-            },
+            kuba::bounds2![[0.0, 0.0], [0.2, 0.2]],
         );
 
-        assert_eq!(grid_map.get(kuba::Cell2::new(0, 0)), 1.0);
-        assert_eq!(grid_map.get(kuba::Cell2::new(0, 1)), 2.0);
-        assert_eq!(grid_map.get(kuba::Cell2::new(1, 0)), 10.0);
-        assert_eq!(grid_map.get(kuba::Cell2::new(1, 1)), 20.0);
+        assert_eq!(grid_map.get(kuba::cell2![0, 0]), 1.0);
+        assert_eq!(grid_map.get(kuba::cell2![0, 1]), 2.0);
+        assert_eq!(grid_map.get(kuba::cell2![1, 0]), 10.0);
+        assert_eq!(grid_map.get(kuba::cell2![1, 1]), 20.0);
     }
 
     #[test]
-    fn set() {
+    fn get3() {
+        let grid_map = kuba::GridMap3f::from_ndarray(
+            nd::array![
+                [[111.0, 112.0], [121.0, 122.0]],
+                [[211.0, 212.0], [221.0, 222.0]],
+            ],
+            0.1,
+            kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+        );
+
+        assert_eq!(grid_map.get(kuba::cell3![0, 0, 0]), 111.0);
+        assert_eq!(grid_map.get(kuba::cell3![0, 0, 1]), 112.0);
+        assert_eq!(grid_map.get(kuba::cell3![0, 1, 0]), 121.0);
+        assert_eq!(grid_map.get(kuba::cell3![0, 1, 1]), 122.0);
+        assert_eq!(grid_map.get(kuba::cell3![1, 0, 0]), 211.0);
+        assert_eq!(grid_map.get(kuba::cell3![1, 0, 1]), 212.0);
+        assert_eq!(grid_map.get(kuba::cell3![1, 1, 0]), 221.0);
+        assert_eq!(grid_map.get(kuba::cell3![1, 1, 1]), 222.0);
+    }
+
+    #[test]
+    fn set2() {
         let mut grid_map = kuba::GridMap2f::from_ndarray(
             nd::array![[1.0, 2.0], [10.0, 20.0]],
             0.1,
-            kuba::Bounds2 {
-                min: kuba::Point2::new(0.0, 0.0),
-                max: kuba::Point2::new(0.2, 0.2),
-            },
+            kuba::bounds2![[0.0, 0.0], [0.2, 0.2]],
         );
 
         grid_map.set(kuba::Cell2::new(0, 0), 15.0);
         assert_eq!(grid_map.get(kuba::Cell2::new(0, 0)), 15.0);
+    }
+
+    #[test]
+    fn set3() {
+        let mut grid_map = kuba::GridMap3f::from_ndarray(
+            nd::array![
+                [[111.0, 112.0], [121.0, 122.0]],
+                [[211.0, 212.0], [221.0, 222.0]],
+            ],
+            0.1,
+            kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+        );
+
+        grid_map.set(kuba::cell3![0, 0, 0], 15.0);
+        assert_eq!(grid_map.get(kuba::cell3![0, 0, 0]), 15.0);
     }
 }

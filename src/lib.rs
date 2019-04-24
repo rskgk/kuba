@@ -27,11 +27,3 @@ pub use grid_map::GridMap3;
 pub use grid_map::GridMap3f;
 pub use grid_map::GridMap3i;
 pub use grid_map::GridMap3b;
-
-//#[cfg(test)]
-//mod tests {
-//    #[test]
-//    fn it_works() {
-//        assert_eq!(2 + 2, 4);
-//    }
-//}
