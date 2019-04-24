@@ -120,6 +120,8 @@ mod tests {
         );
 
         grid_map.set(kuba::cell3![0, 0, 0], 15.0);
+        grid_map.set(kuba::cell3![0, 1, 0], 25.0);
         assert_eq!(grid_map.get(kuba::cell3![0, 0, 0]), 15.0);
+        assert_eq!(grid_map.get(kuba::cell3![0, 1, 0]), 25.0);
     }
 }
