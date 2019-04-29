@@ -21,7 +21,7 @@ where
         for (min_val, max_val) in min.iter().zip(max.iter()) {
             assert!(*min_val < *max_val);
         }
-        Bounds{min: min, max: max}
+        Bounds { min: min, max: max }
     }
 
     pub fn discretized(&self, resolution: f32) -> Self {
@@ -29,17 +29,17 @@ where
             Point::<D>::from(self.min.coords.map(|val| {
                 let cell = val / resolution;
                 if approx::relative_eq!(cell, cell.round()) {
-                    return val
+                    return val;
                 }
                 cell.floor() * resolution
             })),
             Point::<D>::from(self.max.coords.map(|val| {
                 let cell = val / resolution;
                 if approx::relative_eq!(cell, cell.round()) {
-                    return val
+                    return val;
                 }
                 cell.ceil() * resolution
-            }))
+            })),
         )
     }
 }

@@ -171,11 +171,19 @@ mod tests {
         for i in 0..100 {
             let point_val = (i as f32) * 0.1;
             assert_eq!(
-                grid_map.cell_from_point(kuba::point3![point_val - 0.95, point_val - 1.95, point_val - 2.95]),
+                grid_map.cell_from_point(kuba::point3![
+                    point_val - 0.95,
+                    point_val - 1.95,
+                    point_val - 2.95
+                ]),
                 kuba::cell3![i, i, i]
             );
             assert_eq!(
-                grid_map.cell_from_point(kuba::point3![point_val - 1.0, point_val - 2.0, point_val - 3.0]),
+                grid_map.cell_from_point(kuba::point3![
+                    point_val - 1.0,
+                    point_val - 2.0,
+                    point_val - 3.0
+                ]),
                 kuba::cell3![i, i, i]
             );
         }
