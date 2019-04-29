@@ -1,3 +1,4 @@
+extern crate approx;
 extern crate nalgebra as na;
 extern crate ndarray as nd;
 
