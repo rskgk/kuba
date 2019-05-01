@@ -31,8 +31,8 @@ where
     NdD: nd::Dimension,
     Cell<NaD>: CellToNdIndex<NaD, NdD>,
     na::DefaultAllocator: na::allocator::Allocator<A, NaD>
-        + na::allocator::Allocator<usize, NaD>
-        + na::allocator::Allocator<f32, NaD>,
+        + na::allocator::Allocator<f32, NaD>
+        + na::allocator::Allocator<isize, NaD>,
 {
     pub fn from_ndarray(ndarray: nd::Array<A, NdD>, resolution: f32, bounds: Bounds<NaD>) -> Self {
         GridMapN {

@@ -4,19 +4,23 @@ use super::*;
 /// We use the center of the cell instead of the top left corner to avoid issues with floating
 /// point rounding.
 #[inline]
-pub fn point_coord_from_cell_coord(cell_coord: usize, bounds_min: f32, resolution: f32) -> f32 {
-    (cell_coord as f32) * resolution + bounds_min + resolution / 2.0
+pub fn point_coord_from_cell_coord(cell_coord: isize, bounds_min: f32, resolution: f32) -> f32 {
+    (cell_coord as f32) * resolution + bounds_min + resolution * 0.5
 }
 
 /// Returns the cell coord corresponding to the given point coord.
 /// If the point lies exactly on a cell boundary, the higher cell is returned.
 #[inline]
-pub fn cell_coord_from_point_coord(point_coord: f32, bounds_min: f32, resolution: f32) -> usize {
+pub fn cell_coord_from_point_coord(point_coord: f32, bounds_min: f32, resolution: f32) -> isize {
     let cell_coord = (point_coord - bounds_min) / resolution;
-    if approx::relative_eq!(cell_coord, cell_coord.round(), epsilon = std::f32::EPSILON * 10.0) {
-        return (cell_coord + resolution / 2.0) as usize;
+    if approx::relative_eq!(
+        cell_coord,
+        cell_coord.round(),
+        epsilon = std::f32::EPSILON * 10.0
+    ) {
+        return (cell_coord + resolution * 0.5) as isize;
     }
-    cell_coord as usize
+    cell_coord as isize
 }
 
 /// Returns the point at the center of the given cell.
@@ -26,7 +30,7 @@ pub fn cell_coord_from_point_coord(point_coord: f32, bounds_min: f32, resolution
 pub fn point_from_cell<NaD>(cell: &Cell<NaD>, bounds: &Bounds<NaD>, resolution: f32) -> Point<NaD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<usize, NaD> + na::allocator::Allocator<f32, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<isize, NaD> + na::allocator::Allocator<f32, NaD>,
 {
     Point::<NaD>::from(cell.coords.zip_map(&bounds.min.coords, |coord, min| {
         point_coord_from_cell_coord(coord, min, resolution)
@@ -39,7 +43,7 @@ where
 pub fn cell_from_point<NaD>(point: &Point<NaD>, bounds: &Bounds<NaD>, resolution: f32) -> Cell<NaD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<usize, NaD> + na::allocator::Allocator<f32, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
     Cell::<NaD>::from(point.coords.zip_map(&bounds.min.coords, |coord, min| {
         cell_coord_from_point_coord(coord, min, resolution)

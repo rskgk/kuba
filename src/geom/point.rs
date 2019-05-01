@@ -1,4 +1,4 @@
-pub type Point<D> = na::Point<f32, D>;
+pub type Point<NaD> = na::Point<f32, NaD>;
 pub type Point2 = Point<na::U2>;
 pub type Point3 = Point<na::U3>;
 
