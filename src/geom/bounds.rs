@@ -1,23 +1,23 @@
 use super::*;
 
 #[derive(Debug, PartialEq)]
-pub struct Bounds<D>
+pub struct Bounds<NaD>
 where
-    D: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<f32, D>,
+    NaD: na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
 {
-    pub min: Point<D>,
-    pub max: Point<D>,
+    pub min: Point<NaD>,
+    pub max: Point<NaD>,
 }
 pub type Bounds2 = Bounds<na::U2>;
 pub type Bounds3 = Bounds<na::U3>;
 
-impl<D> Bounds<D>
+impl<NaD> Bounds<NaD>
 where
-    D: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<f32, D>,
+    NaD: na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<usize, NaD> + na::allocator::Allocator<f32, NaD>,
 {
-    pub fn new(min: Point<D>, max: Point<D>) -> Self {
+    pub fn new(min: Point<NaD>, max: Point<NaD>) -> Self {
         for (min_val, max_val) in min.iter().zip(max.iter()) {
             assert!(*min_val < *max_val);
         }
@@ -26,14 +26,14 @@ where
 
     pub fn discretized(&self, resolution: f32) -> Self {
         Bounds::new(
-            Point::<D>::from(self.min.coords.map(|val| {
+            Point::<NaD>::from(self.min.coords.map(|val| {
                 let cell = val / resolution;
                 if approx::relative_eq!(cell, cell.round()) {
                     return val;
                 }
                 cell.floor() * resolution
             })),
-            Point::<D>::from(self.max.coords.map(|val| {
+            Point::<NaD>::from(self.max.coords.map(|val| {
                 let cell = val / resolution;
                 if approx::relative_eq!(cell, cell.round()) {
                     return val;
