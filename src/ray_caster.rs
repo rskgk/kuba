@@ -52,23 +52,29 @@ where
         t_delta[i] = resolution / direction[i].abs();
     }
     loop {
-        let mut dim = 2;
-        // This is a bit clunky. Maybe there's a way to handle 2 or 3 dimensions more gracefully?
-        if origin_cell.len() == 3 {
-            if t_max[0] < t_max[1] {
-                if t_max[0] < t_max[2] {
-                    dim = 0;
+        // This somewhat clunky logic is just a fast way of finding the index of the minimum value
+        // in t_max. I.E. which direction (x, y, or z) is the nearest cell border.
+        let dim = {
+            if origin_cell.len() == 3 {
+                if t_max[0] < t_max[1] {
+                    if t_max[0] < t_max[2] {
+                        0
+                    } else {
+                        2
+                    }
+                } else if t_max[1] < t_max[2] {
+                    1
+                } else {
+                    2
                 }
-            } else if t_max[1] < t_max[2] {
-                dim = 1;
-            }
-        } else {
-            if t_max[0] < t_max[1] {
-                dim = 0;
             } else {
-                dim = 1;
+                if t_max[0] < t_max[1] {
+                    0
+                } else {
+                    1
+                }
             }
-        }
+        };
         current_cell[dim] += step[dim] as isize;
         t_max[dim] += t_delta[dim];
         if current_cell == end_cell {
