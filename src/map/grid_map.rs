@@ -14,14 +14,16 @@ pub type GridMap3f = GridMap3<f32>;
 pub type GridMap3i = GridMap2<i32>;
 pub type GridMap3b = GridMap2<bool>;
 
+// TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
+// generic dimention parameter.
 pub struct GridMapN<A, NaD, NdD>
 where
     NaD: na::DimName,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
 {
-    pub data: nd::Array<A, NdD>,
-    pub bounds: Bounds<NaD>,
-    pub resolution: f32,
+    data: nd::Array<A, NdD>,
+    resolution: f32,
+    bounds: Bounds<NaD>,
 }
 
 impl<A, NaD, NdD> GridMapN<A, NaD, NdD>
@@ -59,14 +61,14 @@ where
     /// point rounding.
     #[inline]
     pub fn point_from_cell(&self, cell: &Cell<NaD>) -> Point<NaD> {
-        geom::converter::point_from_cell(cell, &self.bounds, self.resolution)
+        geom::converter::point_from_cell(cell, &self.bounds.min, self.resolution)
     }
 
-    /// Returns the cell corresponding to the given point
+    /// Returns the cell corresponding to the given point.
     /// If the point lies exactly on a cell boundary, the higher cell is returned.
     #[inline]
     pub fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD> {
-        geom::converter::cell_from_point(point, &self.bounds, self.resolution)
+        geom::converter::cell_from_point(point, &self.bounds.min, self.resolution)
     }
 }
 

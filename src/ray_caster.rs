@@ -67,8 +67,8 @@ where
     assert!(origin.len() == 2 || origin.len() == 3);
     let max_len_sq = max_len * max_len;
     let mut ray_cells = vec![];
-    let origin_cell = geom::converter::cell_from_point(&origin, &bounds, resolution);
-    let end_cell = geom::converter::cell_from_point(&end, &bounds, resolution);
+    let origin_cell = geom::converter::cell_from_point(&origin, &bounds.min, resolution);
+    let end_cell = geom::converter::cell_from_point(&end, &bounds.min, resolution);
     if origin_cell == end_cell {
         return (ray_cells, Some(end_cell));
     }
@@ -127,7 +127,7 @@ where
             // Use the squared values to avoid the expensive square root operation to calculate the
             // actual norm.
             let current_ray =
-                geom::converter::point_from_cell(&current_cell, &bounds, resolution) - origin;
+                geom::converter::point_from_cell(&current_cell, &bounds.min, resolution) - origin;
             if current_ray.norm_squared() > max_len_sq {
                 return (ray_cells, None);
             }
