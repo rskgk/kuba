@@ -1,3 +1,4 @@
+use crate::geom::Bounds;
 use crate::geom::Point;
 
 pub type PointCloud2 = PointCloud<na::U2>;
@@ -15,7 +16,7 @@ where
 impl<NaD> PointCloud<NaD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<isize, NaD> + na::allocator::Allocator<f32, NaD>,
 {
     pub fn from_points(points: &[Point<NaD>]) -> Self {
         PointCloud::<NaD> {
@@ -33,6 +34,21 @@ where
             Point::<NaD>::from(coords)
         })
     }
+
+    /// Returns the bounds that encapsulates all the points in the point cloud.
+    pub fn bounds(&self) -> Bounds<NaD> {
+        self.points_iter().fold(Bounds::<NaD>::empty(), |mut bounds, point| {
+            for (i, point_val) in point.iter().enumerate() {
+                if *point_val < bounds.min[i] {
+                    bounds.min[i] = *point_val;
+                }
+                if *point_val > bounds.max[i] {
+                    bounds.max[i] = *point_val;
+                }
+            }
+            bounds
+        })
+    }
 }
 
 #[cfg(test)]
@@ -44,5 +60,13 @@ mod tests {
         let points = [kuba::point2![0.0, 0.0], kuba::point2![1.0, 1.0]];
         let point_cloud = kuba::PointCloud2::from_points(&points);
         assert_eq!(point_cloud.points_iter().collect::<Vec<_>>(), points);
+    }
+
+    #[test]
+    fn test_bounds() {
+        let points = [kuba::point2![0.0, -1.2], kuba::point2![1.1, 1.2]];
+        let point_cloud = kuba::PointCloud2::from_points(&points);
+        let expected_bounds = kuba::bounds2![[0.0, -1.2], [1.1, 1.2]];
+        assert!(approx::relative_eq!(point_cloud.bounds(), expected_bounds));
     }
 }
