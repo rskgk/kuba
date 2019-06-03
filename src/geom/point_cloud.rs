@@ -4,6 +4,7 @@ use crate::geom::Point;
 pub type PointCloud2 = PointCloud<na::U2>;
 pub type PointCloud3 = PointCloud<na::U3>;
 
+#[derive(Debug)]
 pub struct PointCloud<NaD>
 where
     NaD: na::DimName,
@@ -16,7 +17,7 @@ where
 impl<NaD> PointCloud<NaD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<isize, NaD> + na::allocator::Allocator<f32, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
     pub fn from_points(points: &[Point<NaD>]) -> Self {
         PointCloud::<NaD> {
@@ -25,6 +26,10 @@ where
                 points.iter().flat_map(|point| point.coords.iter()).cloned(),
             ),
         }
+    }
+
+    pub fn from_data(data: na::MatrixMN<f32, NaD, na::Dynamic>) -> Self {
+        PointCloud::<NaD>{data: data}
     }
 
     pub fn points_iter<'a>(&'a self) -> impl Iterator<Item = Point<NaD>> + 'a {
