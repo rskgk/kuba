@@ -1,6 +1,7 @@
 use byteorder::ReadBytesExt;
 
 use crate::geom::PointCloud3;
+use crate::kitti;
 
 pub fn read(input: &mut std::io::Read) -> std::io::Result<PointCloud3> {
     // Kitti points clouds are stored as f32 binary blobs where each point is sequentially stored as
@@ -42,7 +43,7 @@ pub fn read_from_dir(
     dir: &std::path::Path,
     print_status: bool,
 ) -> std::io::Result<Vec<PointCloud3>> {
-    let paths = point_cloud_files_in_dir(dir)?;
+    let paths = kitti::fs::seq_files_in_dir(dir)?;
     let num_paths = paths.len();
     paths
         .into_iter()
@@ -59,17 +60,4 @@ pub fn read_from_dir(
             read_from_file(&path)
         })
         .collect()
-}
-
-/// Returns a vec of all the paths within the directory. Files in this directory are assumed to
-/// contain one point cloud each, and be named according their index in the data collect.
-/// Typically this directory is under the "velodyne_points/data" directory in the data set.
-pub fn point_cloud_files_in_dir(dir: &std::path::Path) -> std::io::Result<Vec<std::path::PathBuf>> {
-    // The read_dir function doesn't return paths in any particular order. So collect them and sort
-    // them alphabetically to be sure they're handled in the right order.
-    let mut paths = std::fs::read_dir(dir)?
-        .map(|entry| Ok(entry?.path()))
-        .collect::<std::io::Result<Vec<std::path::PathBuf>>>()?;
-    paths.sort();
-    Ok(paths)
 }

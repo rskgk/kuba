@@ -8,5 +8,7 @@ pub mod point;
 pub use point::*;
 pub mod point_cloud;
 pub use point_cloud::*;
+pub mod pose;
+pub use pose::*;
 pub mod vector;
 pub use vector::*;
