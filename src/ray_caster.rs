@@ -16,7 +16,9 @@ pub fn cast_rays<NaD>(
 )
 where
     NaD: na::DimName + std::hash::Hash,
-    na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>
+        + na::allocator::Allocator<isize, NaD>
+        + na::allocator::Allocator<f32, NaD, NaD>,
     <na::DefaultAllocator as na::allocator::Allocator<isize, NaD>>::Buffer: std::hash::Hash,
 {
     // TODO(kgreenek): Investigate parallelizing this with rayon.
@@ -164,12 +166,15 @@ mod tests {
             kuba::cell2![2, 0],
             kuba::cell2![0, 1],
             kuba::cell2![0, 2],
-        ].iter().cloned().collect();
-        let expected_occupied_cells: std::collections::HashSet<_> = [
-            kuba::cell2![3, 3],
-            kuba::cell2![0, 3],
-            kuba::cell2![3, 0],
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        let expected_occupied_cells: std::collections::HashSet<_> =
+            [kuba::cell2![3, 3], kuba::cell2![0, 3], kuba::cell2![3, 0]]
+                .iter()
+                .cloned()
+                .collect();
         assert_eq!(free_cells, expected_free_cells);
         assert_eq!(occupied_cells, expected_occupied_cells);
     }
@@ -203,13 +208,19 @@ mod tests {
             kuba::cell3![0, 2, 0],
             kuba::cell3![0, 0, 1],
             kuba::cell3![0, 0, 2],
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
         let expected_occupied_cells: std::collections::HashSet<_> = [
             kuba::cell3![3, 3, 3],
             kuba::cell3![3, 0, 0],
             kuba::cell3![0, 3, 0],
             kuba::cell3![0, 0, 3],
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
         assert_eq!(free_cells, expected_free_cells);
         assert_eq!(occupied_cells, expected_occupied_cells);
     }
