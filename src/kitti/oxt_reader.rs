@@ -2,16 +2,19 @@ use crate::geom::Pose3;
 use crate::kitti;
 
 /// The circumference of the earth along the equator.
-const EARTH_EQUATOR_CIRCUMFERENCE: f32 = 40075160.0;
+const EARTH_EQUATOR_CIRCUMFERENCE: f64 = 40075160.0;
 /// The circumference of the earth traveling through the poles.
-const EARTH_POLE_CIRCUMFERENCE: f32 = 40008000.0;
+const EARTH_POLE_CIRCUMFERENCE: f64 = 40008000.0;
 
-fn str_to_f32(string: &str) -> std::io::Result<f32> {
-    match string.parse::<f32>() {
+fn str_to_float<F>(string: &str) -> std::io::Result<F>
+where
+    F: std::str::FromStr,
+{
+    match string.parse::<F>() {
         Ok(val) => Ok(val),
         _ => Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            "Invalid f32",
+            "Invalid float",
         )),
     }
 }
@@ -24,23 +27,23 @@ fn str_to_f32(string: &str) -> std::io::Result<f32> {
 /// See:
 ///   https://stackoverflow.com/questions/3024404/transform-longitude-latitude-into-meters
 fn gps_to_meters(
-    gps_point: &na::Translation3<f32>,
-    gps_origin: &na::Translation3<f32>,
+    gps_point: &na::Translation3<f64>,
+    gps_origin: &na::Translation3<f64>,
 ) -> na::Translation3<f32> {
     let dlat = gps_point.vector[0] - gps_origin.vector[0];
     let dlon = gps_point.vector[1] - gps_origin.vector[1];
     let lat_circumference = EARTH_EQUATOR_CIRCUMFERENCE * dlat.to_radians().cos();
     na::Translation3::<f32>::new(
-        dlon * lat_circumference / 360.0,
-        dlat * EARTH_POLE_CIRCUMFERENCE / 360.0,
-        gps_point.vector[2] - gps_origin.vector[2],
+        (dlon * lat_circumference / 360.0) as f32,
+        (dlat * EARTH_POLE_CIRCUMFERENCE / 360.0) as f32,
+        (gps_point.vector[2] - gps_origin.vector[2]) as f32,
     )
 }
 
 pub fn read(
     input: &mut std::io::Read,
-    gps_origin: Option<na::Translation3<f32>>,
-) -> std::io::Result<(Pose3, na::Translation3<f32>)> {
+    gps_origin: Option<na::Translation3<f64>>,
+) -> std::io::Result<(Pose3, na::Translation3<f64>)> {
     let mut buffer = String::new();
     input.read_to_string(&mut buffer)?;
     let str_values = buffer.split(" ").collect::<Vec<&str>>();
@@ -51,15 +54,15 @@ pub fn read(
     if str_values.len() < 6 {
         return err;
     }
-    let gps_point = na::Translation3::<f32>::new(
-        str_to_f32(str_values[0])?,
-        str_to_f32(str_values[1])?,
-        str_to_f32(str_values[2])?,
+    let gps_point = na::Translation3::<f64>::new(
+        str_to_float::<f64>(str_values[0])?,
+        str_to_float::<f64>(str_values[1])?,
+        str_to_float::<f64>(str_values[2])?,
     );
     let rotation = na::UnitQuaternion::<f32>::from_euler_angles(
-        str_to_f32(str_values[3])?,
-        str_to_f32(str_values[4])?,
-        str_to_f32(str_values[5])?,
+        str_to_float::<f32>(str_values[3])?,
+        str_to_float::<f32>(str_values[4])?,
+        str_to_float::<f32>(str_values[5])?,
     );
     if let Some(gps_origin) = gps_origin {
         Ok((
@@ -76,8 +79,8 @@ pub fn read(
 
 pub fn read_from_file(
     path: &std::path::Path,
-    gps_origin: Option<na::Translation3<f32>>,
-) -> std::io::Result<(Pose3, na::Translation3<f32>)> {
+    gps_origin: Option<na::Translation3<f64>>,
+) -> std::io::Result<(Pose3, na::Translation3<f64>)> {
     read(&mut std::fs::File::open(path)?, gps_origin)
 }
 
