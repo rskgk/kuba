@@ -7,6 +7,7 @@ use crate::geom::math;
 pub fn signum<NaD>(vec: &Vector<NaD>) -> Vector<NaD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<f32, NaD> {
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
+{
     Vector::<NaD>::from(vec.column(0).map(|coord| math::f32_signum(coord)))
 }

@@ -76,8 +76,7 @@ where
 
     #[inline]
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.min.abs_diff_eq(&other.min, epsilon) &&
-            self.max.abs_diff_eq(&other.max, epsilon)
+        self.min.abs_diff_eq(&other.min, epsilon) && self.max.abs_diff_eq(&other.max, epsilon)
     }
 }
 
@@ -96,10 +95,10 @@ where
         &self,
         other: &Self,
         epsilon: Self::Epsilon,
-        max_relative: Self::Epsilon
+        max_relative: Self::Epsilon,
     ) -> bool {
-        self.min.relative_eq(&other.min, epsilon, max_relative) &&
-            self.max.relative_eq(&other.max, epsilon, max_relative)
+        self.min.relative_eq(&other.min, epsilon, max_relative)
+            && self.max.relative_eq(&other.max, epsilon, max_relative)
     }
 }
 

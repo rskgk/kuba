@@ -101,8 +101,8 @@ pub fn read_from_dir(dir: &std::path::Path, print_status: bool) -> std::io::Resu
                 Ok((pose, new_gps_origin)) => {
                     gps_origin = Some(new_gps_origin);
                     Ok(pose)
-                },
-                Err(err) => Err(err)
+                }
+                Err(err) => Err(err),
             }
         })
         .collect()
