@@ -61,6 +61,9 @@ where
         )
     }
 
+    /// Returns the min bounds that encloses our bounds and the other bounds.
+    /// If self is an empty bounds object, then it is ignored and the other bounds is simply
+    /// returned to avoid including the origin needlessly.
     pub fn enclosing(&self, other: &Bounds<NaD>) -> Self {
         if *self == Bounds::empty() {
             return other.clone();
@@ -75,6 +78,21 @@ where
             if *val > other.max[i] {
                 bounds.max[i] = *val;
             }
+        }
+        bounds
+    }
+
+    /// Returns the max bounds that overlaps with both self and other.
+    pub fn overlapping(&self, other: &Bounds<NaD>) -> Self {
+        let mut bounds = Bounds::empty();
+        for i in 0..self.min.len() {
+            let min_max = self.max[i].min(other.max[i]);
+            let max_min = self.min[i].max(other.min[i]);
+            if min_max < max_min || approx::relative_eq!(min_max, max_min) {
+                return Bounds::empty();
+            }
+            bounds.min[i] = max_min;
+            bounds.max[i] = min_max;
         }
         bounds
     }
@@ -200,5 +218,101 @@ mod tests {
         let bounds2 = kuba::bounds3![[-0.02, 0.1, -1.31], [1.1, 5.05, 0.1]];
         let expected_bounds = kuba::bounds3![[-0.02, 0.1, -1.31], [1.1, 5.05, 0.1]];
         assert_eq!(bounds1.enclosing(&bounds2), expected_bounds);
+    }
+
+    #[test]
+    fn overlapping2_subset() {
+        // Top left.
+        let bounds1 = kuba::bounds2![[0.0, 10.0], [1.0, 11.0]];
+        let bounds2 = kuba::bounds2![[-0.5, 9.5], [0.5, 10.5]];
+        let expected_bounds = kuba::bounds2![[0.0, 10.0], [0.5, 10.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom left.
+        let bounds2 = kuba::bounds2![[-0.5, 10.5], [0.5, 11.5]];
+        let expected_bounds = kuba::bounds2![[0.0, 10.5], [0.5, 11.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom right.
+        let bounds2 = kuba::bounds2![[0.5, 9.5], [1.5, 10.5]];
+        let expected_bounds = kuba::bounds2![[0.5, 10.0], [1.0, 10.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Top right.
+        let bounds2 = kuba::bounds2![[0.5, 10.5], [1.5, 11.5]];
+        let expected_bounds = kuba::bounds2![[0.5, 10.5], [1.0, 11.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+    }
+
+    #[test]
+    fn overlapping3_subset() {
+        // Top top top.
+        let bounds1 = kuba::bounds3![[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]];
+        let bounds2 = kuba::bounds3![[0.5, 10.5, 20.5], [1.5, 11.5, 21.5]];
+        let expected_bounds = kuba::bounds3![[0.5, 10.5, 20.5], [1.0, 11.0, 21.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Top top bottom.
+        let bounds2 = kuba::bounds3![[0.5, 10.5, 19.5], [1.5, 11.5, 20.5]];
+        let expected_bounds = kuba::bounds3![[0.5, 10.5, 20.0], [1.0, 11.0, 20.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Top bottom top.
+        let bounds2 = kuba::bounds3![[0.5, 9.5, 20.5], [1.5, 10.5, 21.5]];
+        let expected_bounds = kuba::bounds3![[0.5, 10.0, 20.5], [1.0, 10.5, 21.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Top bottom bottom.
+        let bounds2 = kuba::bounds3![[0.5, 9.5, 19.5], [1.5, 10.5, 20.5]];
+        let expected_bounds = kuba::bounds3![[0.5, 10.0, 20.0], [1.0, 10.5, 20.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom top top.
+        let bounds2 = kuba::bounds3![[-0.5, 10.5, 20.5], [0.5, 11.5, 21.5]];
+        let expected_bounds = kuba::bounds3![[0.0, 10.5, 20.5], [0.5, 11.0, 21.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom top bottom.
+        let bounds2 = kuba::bounds3![[-0.5, 10.5, 19.5], [0.5, 11.5, 20.5]];
+        let expected_bounds = kuba::bounds3![[0.0, 10.5, 20.0], [0.5, 11.0, 20.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom bottom top.
+        let bounds2 = kuba::bounds3![[-0.5, 9.5, 20.5], [0.5, 10.5, 21.5]];
+        let expected_bounds = kuba::bounds3![[0.0, 10.0, 20.5], [0.5, 10.5, 21.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+        // Bottom bottom bottom.
+        let bounds2 = kuba::bounds3![[-0.5, 9.5, 19.5], [0.5, 10.5, 20.5]];
+        let expected_bounds = kuba::bounds3![[0.0, 10.0, 20.0], [0.5, 10.5, 20.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), expected_bounds);
+    }
+
+    #[test]
+    fn overlapping2_containing() {
+        // bounds1 contains bounds2.
+        let bounds1 = kuba::bounds2![[0.0, 10.0], [1.0, 11.0]];
+        let bounds2 = kuba::bounds2![[0.2, 10.5], [0.5, 10.7]];
+        assert_eq!(bounds1.overlapping(&bounds2), bounds2);
+        // bounds2 contains bounds1.
+        let bounds1 = kuba::bounds2![[0.2, 10.5], [0.5, 10.7]];
+        let bounds2 = kuba::bounds2![[0.0, 10.0], [1.0, 11.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), bounds1);
+    }
+
+    #[test]
+    fn overlapping3_containing() {
+        // bounds1 contains bounds2.
+        let bounds1 = kuba::bounds3![[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]];
+        let bounds2 = kuba::bounds3![[0.2, 10.5, 20.5], [0.5, 10.7, 20.7]];
+        assert_eq!(bounds1.overlapping(&bounds2), bounds2);
+        // bounds2 contains bounds1.
+        let bounds1 = kuba::bounds3![[0.2, 10.5, 20.5], [0.5, 10.7, 20.7]];
+        let bounds2 = kuba::bounds3![[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]];
+        assert_eq!(bounds1.overlapping(&bounds2), bounds1);
+    }
+
+    #[test]
+    fn overlapping2_no_overlap() {
+        let bounds1 = kuba::bounds2![[0.0, 10.0], [1.0, 11.0]];
+        let bounds2 = kuba::bounds2![[1.0, 10.5], [1.5, 11.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), kuba::Bounds::empty());
+    }
+
+    #[test]
+    fn overlapping3_no_overlap() {
+        let bounds1 = kuba::bounds3![[0.0, 10.0, 20.0], [1.0, 11.0, 21.0]];
+        let bounds2 = kuba::bounds3![[1.0, 10.5, 20.5], [1.5, 11.5, 21.5]];
+        assert_eq!(bounds1.overlapping(&bounds2), kuba::Bounds::empty());
     }
 }
