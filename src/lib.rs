@@ -9,4 +9,6 @@ pub use geom::*;
 pub mod kitti;
 pub mod map;
 pub use map::*;
+pub mod math;
+pub use math::*;
 pub mod ray_caster;

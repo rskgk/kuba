@@ -3,7 +3,6 @@ pub use bounds::*;
 pub mod cell;
 pub use cell::*;
 pub mod converter;
-pub mod math;
 pub mod point;
 pub use point::*;
 pub mod point_cloud;

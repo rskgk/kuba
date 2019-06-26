@@ -2,7 +2,7 @@ pub type Vector<NaD> = na::VectorN<f32, NaD>;
 pub type Vector2 = Vector<na::U2>;
 pub type Vector3 = Vector<na::U3>;
 
-use crate::geom::math;
+use crate::math;
 
 pub fn signum<NaD>(vec: &Vector<NaD>) -> Vector<NaD>
 where
