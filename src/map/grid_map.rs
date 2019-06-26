@@ -14,6 +14,51 @@ pub type GridMap3f = GridMap3<f32>;
 pub type GridMap3i = GridMap2<i32>;
 pub type GridMap3b = GridMap2<bool>;
 
+pub trait GridMap<A, NaD, NdD>
+where
+    A: na::Scalar,
+    NaD: na::DimName,
+    NdD: nd::Dimension,
+    Cell<NaD>: CellToNdIndex<NaD, NdD>,
+    na::DefaultAllocator: na::allocator::Allocator<A, NaD>
+        + na::allocator::Allocator<f32, NaD>
+        + na::allocator::Allocator<isize, NaD>,
+{
+    #[inline]
+    fn get(&self, cell: &Cell<NaD>) -> A;
+
+    #[inline]
+    fn set(&mut self, cell: &Cell<NaD>, value: A);
+
+    #[inline]
+    fn resolution(&self) -> f32;
+
+    #[inline]
+    fn bounds(&self) -> Bounds<NaD>;
+
+    /// Returns the point at the center of the given cell.
+    /// We use the center of the cell instead of the top left corner to avoid issues with floating
+    /// point rounding.
+    #[inline]
+    fn point_from_cell(&self, cell: &Cell<NaD>) -> Point<NaD>;
+
+    /// Returns the cell corresponding to the given point.
+    /// If the point lies exactly on a cell boundary, the higher cell is returned.
+    #[inline]
+    fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD>;
+}
+
+// TODO(kgreenek): Move these methods into the GridMap trait. This is only a separate trait to
+// work-around the struggles with implementing resized with generic parameters.
+pub trait ResizableGridMap<A, NaD, NdD>
+where
+    NaD: na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
+{
+    fn resize(&mut self, bounds: &Bounds<NaD>, default_value: A);
+    fn resized(&self, bounds: &Bounds<NaD>, default_value: A) -> Self;
+}
+
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
 // generic dimention parameter.
 pub struct GridMapN<A, NaD, NdD>
@@ -21,9 +66,9 @@ where
     NaD: na::DimName,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
 {
-    data: nd::Array<A, NdD>,
-    resolution: f32,
-    bounds: Bounds<NaD>,
+    pub data: nd::Array<A, NdD>,
+    pub resolution: f32,
+    pub bounds: Bounds<NaD>,
 }
 
 impl<A, NaD, NdD> GridMapN<A, NaD, NdD>
@@ -55,31 +100,45 @@ where
             bounds: bounds.clone(),
         }
     }
+}
 
-    /// Returns the value at the given cell.
+impl<A, NaD, NdD> GridMap<A, NaD, NdD> for GridMapN<A, NaD, NdD>
+where
+    A: na::Scalar,
+    NaD: na::DimName,
+    NdD: nd::Dimension,
+    Cell<NaD>: CellToNdIndex<NaD, NdD>,
+    na::DefaultAllocator: na::allocator::Allocator<A, NaD>
+        + na::allocator::Allocator<f32, NaD>
+        + na::allocator::Allocator<isize, NaD>,
+{
     #[inline]
-    pub fn get(&self, cell: &Cell<NaD>) -> A {
+    fn get(&self, cell: &Cell<NaD>) -> A {
         self.data[cell.to_ndindex()]
     }
 
-    /// Sets the value at the given cell.
     #[inline]
-    pub fn set(&mut self, cell: &Cell<NaD>, value: A) {
+    fn set(&mut self, cell: &Cell<NaD>, value: A) {
         self.data[cell.to_ndindex()] = value;
     }
 
-    /// Returns the point at the center of the given cell.
-    /// We use the center of the cell instead of the top left corner to avoid issues with floating
-    /// point rounding.
     #[inline]
-    pub fn point_from_cell(&self, cell: &Cell<NaD>) -> Point<NaD> {
+    fn resolution(&self) -> f32 {
+        self.resolution
+    }
+
+    #[inline]
+    fn bounds(&self) -> Bounds<NaD> {
+        self.bounds.clone()
+    }
+
+    #[inline]
+    fn point_from_cell(&self, cell: &Cell<NaD>) -> Point<NaD> {
         geom::converter::point_from_cell(cell, &self.bounds.min, self.resolution)
     }
 
-    /// Returns the cell corresponding to the given point.
-    /// If the point lies exactly on a cell boundary, the higher cell is returned.
     #[inline]
-    pub fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD> {
+    fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD> {
         geom::converter::cell_from_point(point, &self.bounds.min, self.resolution)
     }
 }
@@ -88,11 +147,15 @@ where
 // In a generic context, you can't use the ns::s![] macro, because it returns a fixed size
 // array rather than a <NdD as nd::Dimension>::SliceArg generic type that is required for
 // calling self.grid_map.data in a generic context.
-impl<A> GridMap2<A>
+impl<A> ResizableGridMap<A, na::U2, nd::Ix2> for GridMap2<A>
 where
     A: na::Scalar,
 {
-    pub fn resized(&self, bounds: &Bounds<na::U2>, default_value: A) -> Self {
+    fn resize(&mut self, bounds: &Bounds<na::U2>, default_value: A) {
+        // TODO: KEVIN YOU ARE HERE!!! IMPLEMENT THIS
+    }
+
+    fn resized(&self, bounds: &Bounds<na::U2>, default_value: A) -> Self {
         let mut grid_map = Self::from_bounds(self.resolution, bounds, default_value);
         let overlapping_bounds = self.bounds.overlapping(bounds);
         if overlapping_bounds == Bounds::<na::U2>::empty() {
@@ -130,11 +193,15 @@ where
 // In a generic context, you can't use the ns::s![] macro, because it returns a fixed size
 // array rather than a <NdD as nd::Dimension>::SliceArg generic type that is required for
 // calling self.grid_map.data in a generic context.
-impl<A> GridMap3<A>
+impl<A> ResizableGridMap<A, na::U3, nd::Ix3> for GridMap3<A>
 where
     A: na::Scalar,
 {
-    pub fn resized(&self, bounds: &Bounds<na::U3>, default_value: A) -> Self {
+    fn resize(&mut self, bounds: &Bounds<na::U3>, default_value: A) {
+        // TODO: KEVIN YOU ARE HERE!!! IMPLEMENT THIS
+    }
+
+    fn resized(&self, bounds: &Bounds<na::U3>, default_value: A) -> Self {
         let mut grid_map = Self::from_bounds(self.resolution, bounds, default_value);
         let overlapping_bounds = self.bounds.overlapping(bounds);
         if overlapping_bounds == Bounds::<na::U3>::empty() {
@@ -173,6 +240,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate as kuba;
+    use kuba::prelude::*;
 
     #[test]
     fn get2() {
