@@ -11,4 +11,5 @@ pub mod map;
 pub use map::*;
 pub mod math;
 pub use math::*;
+pub mod prelude;
 pub mod ray_caster;
