@@ -6,7 +6,11 @@ use crate::geom::PointCloud;
 use crate::map::grid_map::ExpandableGridMap;
 use crate::map::grid_map::GridMap;
 use crate::map::GridMapN;
+use crate::map::LidarNoiseModel;
 use crate::map::NoiseModel;
+
+pub type LidarOccupancyGridMap2 = OccupancyGridMapN<LidarNoiseModel, na::U2, nd::Ix2>;
+pub type LidarOccupancyGridMap3 = OccupancyGridMapN<LidarNoiseModel, na::U3, nd::Ix3>;
 
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
 // generic dimention parameter.
@@ -18,8 +22,8 @@ where
     Cell<NaD>: CellToNdIndex<NaD, NdD>,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
-    grid_map: GridMapN<f32, NaD, NdD>,
-    noise_model: NM,
+    pub grid_map: GridMapN<f32, NaD, NdD>,
+    pub noise_model: NM,
 }
 
 impl<NM, NaD, NdD> OccupancyGridMapN<NM, NaD, NdD>
@@ -32,6 +36,21 @@ where
     <na::DefaultAllocator as na::allocator::Allocator<isize, NaD>>::Buffer: std::hash::Hash,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
+    pub fn default(resolution: f32) -> Self {
+        Self::empty(NM::default(), resolution)
+    }
+
+    pub fn empty(noise_model: NM, resolution: f32) -> Self {
+        OccupancyGridMapN {
+            grid_map: GridMapN::from_bounds(
+                resolution,
+                Bounds::empty(),
+                noise_model.default_cell_value(),
+            ),
+            noise_model: noise_model,
+        }
+    }
+
     pub fn from_ndarray(
         noise_model: NM,
         ndarray: nd::Array<f32, NdD>,
@@ -44,20 +63,20 @@ where
         }
     }
 
-    pub fn from_bounds(
-        noise_model: NM,
-        resolution: f32,
-        bounds: Bounds<NaD>,
-        default_value: f32,
-    ) -> Self {
+    pub fn from_bounds(noise_model: NM, resolution: f32, bounds: Bounds<NaD>) -> Self {
         OccupancyGridMapN {
-            grid_map: GridMapN::from_bounds(resolution, bounds, default_value),
+            grid_map: GridMapN::from_bounds(resolution, bounds, noise_model.default_cell_value()),
             noise_model: noise_model,
         }
     }
 
     pub fn integrate_point_cloud(&mut self, origin: &Point<NaD>, point_cloud: &PointCloud<NaD>) {
-        self.noise_model.integrate_point_cloud(&mut self.grid_map, origin, point_cloud);
+        self.noise_model
+            .integrate_point_cloud(&mut self.grid_map, origin, point_cloud);
+    }
+
+    pub fn occupied(&self, cell: &Cell<NaD>) -> bool {
+        self.noise_model.occupied(&self.grid_map, cell)
     }
 }
 

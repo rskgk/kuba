@@ -12,6 +12,9 @@ where
     Cell<NaD>: CellToNdIndex<NaD, NdD>,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
+    /// Convenience constructor that returns a noise model object configured with default settings.
+    fn default() -> Self;
+
     /// Returns the default value for a cell whose probability is unknown.
     #[inline]
     fn default_cell_value(&self) -> f32;
