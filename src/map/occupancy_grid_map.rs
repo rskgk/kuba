@@ -9,8 +9,9 @@ use crate::map::GridMapN;
 use crate::map::LidarNoiseModel;
 use crate::map::NoiseModel;
 
-pub type LidarOccupancyGridMap2 = OccupancyGridMapN<LidarNoiseModel, na::U2, nd::Ix2>;
-pub type LidarOccupancyGridMap3 = OccupancyGridMapN<LidarNoiseModel, na::U3, nd::Ix3>;
+pub type LidarOccupancyGridMap<NaD, NdD> = OccupancyGridMapN<LidarNoiseModel, NaD, NdD>;
+pub type LidarOccupancyGridMap2 = LidarOccupancyGridMap<na::U2, nd::Ix2>;
+pub type LidarOccupancyGridMap3 = LidarOccupancyGridMap<na::U3, nd::Ix3>;
 
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
 // generic dimention parameter.
@@ -37,7 +38,7 @@ where
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
     pub fn default(resolution: f32) -> Self {
-        Self::empty(NM::default(), resolution)
+        Self::empty(NM::default_noise_model(), resolution)
     }
 
     pub fn empty(noise_model: NM, resolution: f32) -> Self {

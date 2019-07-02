@@ -166,10 +166,12 @@ where
     A: na::Scalar,
 {
     fn expand_bounds(&mut self, bounds: &Bounds<na::U2>, default_value: A) {
-        // Expand the bounds here when discretizing in case any point in the point_cloud lie exacly
+        // Expand the bounds here when discretizing in case any point in the point_cloud lie exactly
         // on a cell boundary. Otherwise it won't be resized to include the cell containing the
         // boundary point.
-        let new_bounds = self.bounds.enclosing(bounds).discretized(self.resolution, true);
+        let new_bounds = self
+            .bounds
+            .enclosing(&bounds.discretized(self.resolution, true));
         self.data = resized_ndarray2(
             &self.data,
             &self.bounds,
@@ -190,10 +192,12 @@ where
     A: na::Scalar,
 {
     fn expand_bounds(&mut self, bounds: &Bounds<na::U3>, default_value: A) {
-        // Expand the bounds here when discretizing in case any point in the point_cloud lie exacly
+        // Expand the bounds here when discretizing in case any point in the point_cloud lie exactly
         // on a cell boundary. Otherwise it won't be resized to include the cell containing the
         // boundary point.
-        let new_bounds = self.bounds.enclosing(bounds).discretized(self.resolution, true);
+        let new_bounds = self
+            .bounds
+            .enclosing(&bounds.discretized(self.resolution, true));
         self.data = resized_ndarray3(
             &self.data,
             &self.bounds,
@@ -341,6 +345,8 @@ where
             from_cell_min.coords[0]..from_cell_max.coords[0],
             from_cell_min.coords[1]..from_cell_max.coords[1]
         ]);
+        // TODO(kgreenek): This logic is susceptible to floating point errors that can cause the
+        // sizes of slices to be different. Handle this intelligently.
         to_slice.assign(&from_slice);
     }
     to_data
@@ -377,6 +383,8 @@ where
             from_cell_min.coords[1]..from_cell_max.coords[1],
             from_cell_min.coords[2]..from_cell_max.coords[2]
         ]);
+        // TODO(kgreenek): This logic is susceptible to floating point errors that can cause the
+        // sizes of slices to be different. Handle this intelligently.
         to_slice.assign(&from_slice);
     }
     to_data

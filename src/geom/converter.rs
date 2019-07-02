@@ -12,13 +12,12 @@ pub fn point_coord_from_cell_coord(cell_coord: isize, offset: f32, resolution: f
 /// If the point lies exactly on a cell boundary, the higher cell is returned.
 #[inline]
 pub fn cell_coord_from_point_coord(point_coord: f32, offset: f32, resolution: f32) -> isize {
-    let cell_coord = (point_coord - offset) / resolution;
-    if approx::relative_eq!(
-        cell_coord,
-        cell_coord.round(),
-        epsilon = std::f32::EPSILON * 10.0
-    ) {
-        return (cell_coord + resolution * 0.5) as isize;
+    let mut cell_coord = (point_coord - offset) / resolution;
+    if approx::relative_eq!(cell_coord, cell_coord.round(), epsilon = 0.00001) {
+        cell_coord = cell_coord + resolution * 0.5;
+    }
+    if cell_coord < 0.0 {
+        cell_coord -= 1.0;
     }
     cell_coord as isize
 }
@@ -58,7 +57,7 @@ mod tests {
     fn cell_from_point2() {
         let resolution = 0.1;
         let offset = kuba::point2![-1.0, -2.0];
-        for i in 0..100 {
+        for i in -100..100 {
             let point_val = (i as f32) * 0.1;
             assert_eq!(
                 kuba::geom::converter::cell_from_point(
@@ -83,7 +82,7 @@ mod tests {
     fn cell_from_point3() {
         let resolution = 0.1;
         let offset = kuba::point3![-1.0, -2.0, -3.0];
-        for i in 0..100 {
+        for i in -100..100 {
             let point_val = (i as f32) * 0.1;
             assert_eq!(
                 kuba::geom::converter::cell_from_point(
@@ -108,7 +107,7 @@ mod tests {
     fn point_from_cell2() {
         let resolution = 0.1;
         let offset = kuba::point2![-1.0, -1.0];
-        for i in 0..100 {
+        for i in -100..100 {
             let point_val = (i as f32) * 0.1 - 0.95;
             assert!(approx::relative_eq!(
                 kuba::geom::converter::point_from_cell(&kuba::cell2![i, i], &offset, resolution),
@@ -121,7 +120,7 @@ mod tests {
     fn point_from_cell3() {
         let resolution = 0.1;
         let offset = kuba::point3![-1.0, -2.0, -3.0];
-        for i in 0..100 {
+        for i in -100..100 {
             let point_val = (i as f32) * 0.1;
             assert!(approx::relative_eq!(
                 kuba::geom::converter::point_from_cell(&kuba::cell3![i, i, i], &offset, resolution),

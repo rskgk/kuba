@@ -13,7 +13,7 @@ where
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
     /// Convenience constructor that returns a noise model object configured with default settings.
-    fn default() -> Self;
+    fn default_noise_model() -> Self;
 
     /// Returns the default value for a cell whose probability is unknown.
     #[inline]

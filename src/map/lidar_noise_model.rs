@@ -49,9 +49,18 @@ impl LidarNoiseModel {
             max_range: max_range,
         }
     }
-}
 
-impl LidarNoiseModel {
+    pub fn default() -> Self {
+        LidarNoiseModel::new(
+            DEFAULT_HIT_PROBABILITY,
+            DEFAULT_MISS_PROBABILITY,
+            DEFAULT_MIN_PROBABILITY,
+            DEFAULT_MAX_PROBABILITY,
+            DEFAULT_OCCUPIED_THRESHOLD,
+            DEFAULT_MAX_RANGE,
+        )
+    }
+
     pub fn integrate_hit<NaD, NdD>(
         &self,
         grid_map: &mut impl ExpandableGridMap<f32, NaD, NdD>,
@@ -95,15 +104,8 @@ where
     <na::DefaultAllocator as na::allocator::Allocator<isize, NaD>>::Buffer: std::hash::Hash,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
-    fn default() -> Self {
-        LidarNoiseModel::new(
-            DEFAULT_HIT_PROBABILITY,
-            DEFAULT_MISS_PROBABILITY,
-            DEFAULT_MIN_PROBABILITY,
-            DEFAULT_MAX_PROBABILITY,
-            DEFAULT_OCCUPIED_THRESHOLD,
-            DEFAULT_MAX_RANGE,
-        )
+    fn default_noise_model() -> Self {
+        LidarNoiseModel::default()
     }
 
     #[inline]

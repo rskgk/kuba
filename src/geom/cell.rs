@@ -35,10 +35,9 @@ macro_rules! ndindex_from_cell_impl {
             fn to_ndindex(&self) -> $NdD {
                 unsafe {
                     let index: [isize; $len] = self.coords.into();
-                    // Consider removing this check for performance. Does this get optimized out in
-                    // release mode?
+                    // Consider removing this check for performance.
                     for val in &index[..] {
-                        assert!(!val.is_negative());
+                        assert!(!val.is_negative(), "Negative value in cell {:?}", index);
                     }
                     nd::Dim(std::mem::transmute::<[isize; $len], [usize; $len]>(index))
                 }
