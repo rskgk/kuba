@@ -2,6 +2,8 @@ pub mod bounds;
 pub use bounds::*;
 pub mod cell;
 pub use cell::*;
+pub mod cell_bounds;
+pub use cell_bounds::*;
 pub mod converter;
 pub mod point;
 pub use point::*;
