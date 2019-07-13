@@ -56,16 +56,26 @@ where
     /// The returned CellBounds will be guaranteed to contain the original bounds.
     pub fn discretized(&self, tile_size: usize) -> Self {
         CellBounds {
-            min: Cell::<NaD>::from(
-                self.min
-                    .coords
-                    .map(|coord| coord - (coord % (tile_size as isize)).abs()),
-            ),
-            max: Cell::<NaD>::from(
-                self.max
-                    .coords
-                    .map(|coord| coord + (coord % (tile_size as isize)).abs()),
-            ),
+            min: Cell::<NaD>::from(self.min.coords.map(|coord| {
+                let remainder = (coord % (tile_size as isize)).abs();
+                if remainder == 0 {
+                    coord
+                } else if coord < 0 {
+                    coord - ((tile_size as isize) - remainder)
+                } else {
+                    coord - remainder
+                }
+            })),
+            max: Cell::<NaD>::from(self.max.coords.map(|coord| {
+                let remainder = (coord % (tile_size as isize)).abs();
+                if remainder == 0 {
+                    coord
+                } else if coord < 0 {
+                    coord + remainder
+                } else {
+                    coord + ((tile_size as isize) - remainder)
+                }
+            })),
         }
     }
 }
@@ -124,6 +134,9 @@ mod tests {
         let cell_bounds = kuba::cell_bounds2![[-3, -3], [-1, -1]];
         let expected_cell_bounds = kuba::cell_bounds2![[-4, -4], [0, 0]];
         assert_eq!(cell_bounds.discretized(tile_size), expected_cell_bounds);
+        let cell_bounds = kuba::cell_bounds2![[-256, -692], [279, 971]];
+        let expected_cell_bounds = kuba::cell_bounds2![[-300, -700], [300, 1000]];
+        assert_eq!(cell_bounds.discretized(100), expected_cell_bounds);
     }
 
     #[test]
@@ -142,5 +155,9 @@ mod tests {
         let cell_bounds = kuba::cell_bounds3![[-3, -3, -3], [-1, -1, -1]];
         let expected_cell_bounds = kuba::cell_bounds3![[-4, -4, -4], [0, 0, 0]];
         assert_eq!(cell_bounds.discretized(tile_size), expected_cell_bounds);
+        assert_eq!(-256 % 100, -56);
+        let cell_bounds = kuba::cell_bounds3![[-256, -692, -292], [279, 971, 283]];
+        let expected_cell_bounds = kuba::cell_bounds3![[-300, -700, -300], [300, 1000, 300]];
+        assert_eq!(cell_bounds.discretized(100), expected_cell_bounds);
     }
 }
