@@ -30,7 +30,6 @@ struct AppState {
     loop_counter: usize,
     first_loop: bool,
     grid_map: kuba::LidarOccupancyGridMap3,
-    grid_map_cubes: std::collections::HashMap<kuba::Cell3, kiss3d::scene::SceneNode>,
 }
 
 impl kiss3d::window::State for AppState {
@@ -47,9 +46,8 @@ impl kiss3d::window::State for AppState {
                 .integrate_point_cloud(&origin, &self.point_clouds[self.index]);
             println!("integrate_point_cloud ms: {}", start_t.elapsed().as_millis());
         }
-        let origin = kuba::Point3::from(self.poses[self.index].translation.vector);
+        let start_t = std::time::Instant::now();
         let shape = self.grid_map.grid_map.data.shape();
-        let resolution = self.grid_map.resolution();
         for x in 0..shape[0] {
             for y in 0..shape[1] {
                 for z in 0..shape[2] {
@@ -61,6 +59,7 @@ impl kiss3d::window::State for AppState {
                 }
             }
         }
+        println!("draw point cloud ms: {}", start_t.elapsed().as_millis());
         for point in self.point_clouds[self.index].points_iter() {
             window.draw_point(&point, &na::Point3::new(0.0, 0.6, 0.8));
         }
@@ -70,6 +69,7 @@ impl kiss3d::window::State for AppState {
 }
 
 fn main() {
+    // TODO(kgreenek): Get this from a commandline arg.
     //let kitti_dataset_path =
     //    std::path::Path::new("/home/kevin/data/kitti/2011_09_26/2011_09_26_drive_0002_sync");
     let kitti_dataset_path =
@@ -90,8 +90,7 @@ fn main() {
         .zip(&poses)
         .map(|(point_cloud, pose)| point_cloud.transform(&pose.to_homogeneous()))
         .collect();
-    let resolution = 0.1;
-    let grid_map = kuba::LidarOccupancyGridMap3::default(resolution);
+    let grid_map = kuba::LidarOccupancyGridMap3::default();
     println!("Opening window...");
     let mut window = kiss3d::window::Window::new("Kitti Point Cloud Vizualizer");
     window.set_light(kiss3d::light::Light::StickToCamera);
@@ -103,7 +102,6 @@ fn main() {
         loop_counter: 0,
         first_loop: true,
         grid_map: grid_map,
-        grid_map_cubes: std::collections::HashMap::new(),
     };
     window.render_loop(state);
 }

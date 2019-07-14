@@ -46,6 +46,9 @@ where
     }
 
     pub fn from_bounds(bounds: &Bounds<NaD>, resolution: f32) -> Self {
+        if *bounds == Bounds::<NaD>::empty() {
+            return CellBounds::empty()
+        }
         CellBounds {
             min: converter::cell_from_point(&bounds.min, &Point::<NaD>::origin(), resolution),
             max: converter::cell_from_point(&bounds.max, &Point::<NaD>::origin(), resolution),
@@ -104,6 +107,12 @@ mod tests {
     #[test]
     fn from_bounds3() {
         let resolution = 0.1;
+        let bounds = kuba::Bounds3::empty();
+        let cell_bounds = kuba::CellBounds3::empty();
+        assert_eq!(
+            kuba::CellBounds3::from_bounds(&bounds, resolution),
+            cell_bounds
+        );
         let bounds = kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]];
         let cell_bounds = kuba::cell_bounds3![[0, 0, 0], [2, 2, 2]];
         assert_eq!(

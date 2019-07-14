@@ -150,8 +150,12 @@ mod tests {
         let origin = kuba::point2![0.0, 0.0];
         let point_cloud =
             kuba::PointCloud2::from_points(&[kuba::point2![0.1, 0.0], kuba::point2![0.0, 0.1]]);
-        let mut grid_map =
-            kuba::GridMap2f::from_bounds(0.1, kuba::Bounds2::empty(), 0.0);
+        let mut grid_map = kuba::GridMap2f::new(
+            0.1,
+            kuba::Bounds2::empty(),
+            kuba::grid_map::DEFAULT_TILE_SIZE,
+            0.0,
+        );
         let noise_model = kuba::map::LidarNoiseModel::default();
         noise_model.integrate_point_cloud(&mut grid_map, &origin, &point_cloud);
         assert_eq!(noise_model.occupied(&grid_map, &kuba::cell2![0, 0]), false);
@@ -229,21 +233,46 @@ mod tests {
             kuba::point3![0.0, 0.1, 0.0],
             kuba::point3![0.0, 0.0, 0.1],
         ]);
-        let mut grid_map = kuba::GridMap3f::from_bounds(
+        let mut grid_map = kuba::GridMap3f::new(
             0.1,
             kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            kuba::grid_map::DEFAULT_TILE_SIZE,
             0.0,
         );
         let noise_model = kuba::map::LidarNoiseModel::default();
         noise_model.integrate_point_cloud(&mut grid_map, &origin, &point_cloud);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 0]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 0]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 1]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 0]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 1]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 0]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 1]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 1]), false);
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 0]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 0]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 1]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 0]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 1]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 0]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 1]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 1]),
+            false
+        );
         assert_eq!(
             grid_map.get(&kuba::cell3![0, 0, 0]),
             noise_model.miss_probability_logodds
@@ -332,13 +361,37 @@ mod tests {
         assert_eq!(grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
         assert_eq!(grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
         assert_eq!(grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 0]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 0]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 1]), true);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 0]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 1]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 0]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 1]), false);
-        assert_eq!(noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 1]), false);
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 0]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 0]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 1]),
+            true
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 0, 0]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![0, 1, 1]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 0]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 0, 1]),
+            false
+        );
+        assert_eq!(
+            noise_model.occupied(&grid_map, &kuba::cell3![1, 1, 1]),
+            false
+        );
     }
 }

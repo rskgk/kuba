@@ -42,6 +42,21 @@ where
         Bounds::new(Point::<NaD>::origin(), Point::<NaD>::origin())
     }
 
+    pub fn from_cell_bounds(cell_bounds: &CellBounds<NaD>, resolution: f32) -> Self {
+        Bounds {
+            min: Point::<NaD>::from(
+                converter::point_from_cell(&cell_bounds.min, &Point::<NaD>::origin(), resolution)
+                    .coords
+                    .map(|coord| coord - resolution * 0.5),
+            ),
+            max: Point::<NaD>::from(
+                converter::point_from_cell(&cell_bounds.max, &Point::<NaD>::origin(), resolution)
+                    .coords
+                    .map(|coord| coord + resolution * 0.5 - resolution),
+            ),
+        }
+    }
+
     pub fn discretized(&self, resolution: f32, expand: bool) -> Self {
         Bounds::new(
             Point::<NaD>::from(self.min.coords.map(|val| {
@@ -149,18 +164,30 @@ mod tests {
     fn discretized2() {
         let bounds = kuba::bounds2![[-0.02, 0.1], [1.1, 5.05]];
         let expected_bounds = kuba::bounds2![[-0.1, 0.1], [1.1, 5.1]];
-        assert!(approx::relative_eq!(bounds.discretized(0.1, false), expected_bounds));
+        assert!(approx::relative_eq!(
+            bounds.discretized(0.1, false),
+            expected_bounds
+        ));
         let expected_bounds = kuba::bounds2![[-0.1, 0.1], [1.2, 5.1]];
-        assert!(approx::relative_eq!(bounds.discretized(0.1, true), expected_bounds));
+        assert!(approx::relative_eq!(
+            bounds.discretized(0.1, true),
+            expected_bounds
+        ));
     }
 
     #[test]
     fn discretized3() {
         let bounds = kuba::bounds3![[-0.02, 0.1, -1.31], [1.1, 5.05, -1.3]];
         let expected_bounds = kuba::bounds3![[-0.1, 0.1, -1.4], [1.1, 5.1, -1.3]];
-        assert!(approx::relative_eq!(bounds.discretized(0.1, false), expected_bounds));
+        assert!(approx::relative_eq!(
+            bounds.discretized(0.1, false),
+            expected_bounds
+        ));
         let expected_bounds = kuba::bounds3![[-0.1, 0.1, -1.4], [1.2, 5.1, -1.2]];
-        assert!(approx::relative_eq!(bounds.discretized(0.1, true), expected_bounds));
+        assert!(approx::relative_eq!(
+            bounds.discretized(0.1, true),
+            expected_bounds
+        ));
     }
 
     #[test]

@@ -1,6 +1,10 @@
 use crate::geom;
 use crate::geom::Bounds;
+use crate::geom::Bounds2;
+use crate::geom::Bounds3;
 use crate::geom::Cell;
+use crate::geom::CellBounds2;
+use crate::geom::CellBounds3;
 use crate::geom::CellToNdIndex;
 use crate::geom::Point;
 
@@ -13,6 +17,9 @@ pub type GridMap3<A> = GridMapN<A, na::U3, nd::Ix3>;
 pub type GridMap3f = GridMap3<f32>;
 pub type GridMap3i = GridMap2<i32>;
 pub type GridMap3b = GridMap2<bool>;
+
+pub const DEFAULT_RESOLUTION: f32 = 0.1;
+pub const DEFAULT_TILE_SIZE: usize = 100;
 
 pub trait GridMap<A, NaD, NdD>
 where
@@ -63,20 +70,6 @@ where
     fn expand_bounds(&mut self, bounds: &Bounds<NaD>, default_value: A);
 }
 
-pub trait ResizableGridMap<A, NaD, NdD>: GridMap<A, NaD, NdD>
-where
-    A: na::Scalar,
-    NaD: na::DimName,
-    NdD: nd::Dimension,
-    Cell<NaD>: CellToNdIndex<NaD, NdD>,
-    na::DefaultAllocator: na::allocator::Allocator<A, NaD>
-        + na::allocator::Allocator<f32, NaD>
-        + na::allocator::Allocator<isize, NaD>,
-{
-    fn resize(&mut self, bounds: &Bounds<NaD>, default_value: A);
-    fn resized(&self, bounds: &Bounds<NaD>, default_value: A) -> Self;
-}
-
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
 // generic dimention parameter.
 pub struct GridMapN<A, NaD, NdD>
@@ -87,6 +80,7 @@ where
     pub data: nd::Array<A, NdD>,
     pub resolution: f32,
     pub bounds: Bounds<NaD>,
+    pub tile_size: usize,
 }
 
 impl<A, NaD, NdD> GridMapN<A, NaD, NdD>
@@ -99,19 +93,37 @@ where
         + na::allocator::Allocator<f32, NaD>
         + na::allocator::Allocator<isize, NaD>,
 {
-    pub fn from_ndarray(ndarray: nd::Array<A, NdD>, resolution: f32, bounds: Bounds<NaD>) -> Self {
+    pub fn new(resolution: f32, bounds: Bounds<NaD>, tile_size: usize, default_value: A) -> Self {
+        GridMapN {
+            data: ndarray_with_bounds(resolution, &bounds, default_value),
+            resolution: resolution,
+            bounds: bounds,
+            tile_size: tile_size,
+        }
+    }
+
+    pub fn default() -> Self {
+        GridMapN {
+            data: nd::Array::<A, NdD>::from_shape_vec(NdD::zeros(NdD::NDIM.unwrap()), vec![])
+                .unwrap(),
+            resolution: DEFAULT_RESOLUTION,
+            bounds: Bounds::empty(),
+            tile_size: DEFAULT_TILE_SIZE,
+        }
+    }
+
+    /// You almost certainly don't want this. This is for tests.
+    pub fn from_ndarray(
+        ndarray: nd::Array<A, NdD>,
+        resolution: f32,
+        bounds: Bounds<NaD>,
+        tile_size: usize,
+    ) -> Self {
         GridMapN {
             data: ndarray,
             resolution: resolution,
             bounds: bounds,
-        }
-    }
-
-    pub fn from_bounds(resolution: f32, bounds: Bounds<NaD>, default_value: A) -> Self {
-        GridMapN {
-            data: ndarray_with_bounds(resolution, &bounds, default_value),
-            resolution: resolution,
-            bounds: bounds.clone(),
+            tile_size: tile_size,
         }
     }
 }
@@ -172,14 +184,35 @@ where
         let new_bounds = self
             .bounds
             .enclosing(&bounds.discretized(self.resolution, true));
-        self.data = resized_ndarray2(
-            &self.data,
-            &self.bounds,
-            &new_bounds,
-            self.resolution,
-            default_value,
-        );
+        let new_cell_bounds =
+            CellBounds2::from_bounds(&new_bounds, self.resolution).discretized(self.tile_size);
+        let new_bounds = Bounds2::from_cell_bounds(&new_cell_bounds, self.resolution);
+        let cell_bounds = CellBounds2::from_bounds(&self.bounds, self.resolution);
+        if new_cell_bounds == cell_bounds {
+            return;
+        }
+        // This is super helpful for debugging.
+        //println!("Resizing GridMap ---------------------------------------------------");
+        //println!("tile_size: {}", self.tile_size);
+        //println!("Bounds:\nfrom: {:?}\nto  : {:?}", self.bounds, new_bounds);
+        //println!(
+        //    "Cells :\nfrom: {:?}\nto  : {:?}",
+        //    cell_bounds, new_cell_bounds
+        //);
+        let mut to_data = ndarray_with_bounds(self.resolution, &new_bounds, default_value);
+        if self.bounds != Bounds2::empty() {
+            let offset = cell_bounds.min - new_cell_bounds.min;
+            let cells_size = cell_bounds.max - cell_bounds.min;
+            assert!(offset.x >= 0 && offset.y >= 0);
+            let mut to_slice = to_data.slice_mut(nd::s![
+                offset.x..(cells_size.x + offset.x),
+                offset.y..(cells_size.y + offset.y),
+            ]);
+            let from_slice = self.data.slice(nd::s![0..cells_size.x, 0..cells_size.y,]);
+            to_slice.assign(&from_slice);
+        }
         self.bounds = new_bounds;
+        self.data = to_data;
     }
 }
 
@@ -198,82 +231,38 @@ where
         let new_bounds = self
             .bounds
             .enclosing(&bounds.discretized(self.resolution, true));
-        self.data = resized_ndarray3(
-            &self.data,
-            &self.bounds,
-            &new_bounds,
-            self.resolution,
-            default_value,
-        );
+        let new_cell_bounds =
+            CellBounds3::from_bounds(&new_bounds, self.resolution).discretized(self.tile_size);
+        let new_bounds = Bounds3::from_cell_bounds(&new_cell_bounds, self.resolution);
+        let cell_bounds = CellBounds3::from_bounds(&self.bounds, self.resolution);
+        if new_cell_bounds == cell_bounds {
+            return;
+        }
+        // This is super helpful for debugging.
+        //println!("Resizing GridMap ---------------------------------------------------");
+        //println!("tile_size: {}", self.tile_size);
+        //println!("Bounds:\nfrom: {:?}\nto  : {:?}", self.bounds, new_bounds);
+        //println!(
+        //    "Cells :\nfrom: {:?}\nto  : {:?}",
+        //    cell_bounds, new_cell_bounds
+        //);
+        let mut to_data = ndarray_with_bounds(self.resolution, &new_bounds, default_value);
+        if self.bounds != Bounds3::empty() {
+            let offset = cell_bounds.min - new_cell_bounds.min;
+            let cells_size = cell_bounds.max - cell_bounds.min;
+            assert!(offset.x >= 0 && offset.y >= 0);
+            let mut to_slice = to_data.slice_mut(nd::s![
+                offset.x..(cells_size.x + offset.x),
+                offset.y..(cells_size.y + offset.y),
+                offset.z..(cells_size.z + offset.z),
+            ]);
+            let from_slice =
+                self.data
+                    .slice(nd::s![0..cells_size.x, 0..cells_size.y, 0..cells_size.z,]);
+            to_slice.assign(&from_slice);
+        }
         self.bounds = new_bounds;
-    }
-}
-
-// TODO(kgreenek): Support a generic resized method instead of copying it for 2d and 3d.
-// In a generic context, you can't use the ns::s![] macro, because it returns a fixed size
-// array rather than a <NdD as nd::Dimension>::SliceArg generic type that is required for
-// calling self.grid_map.data in a generic context.
-impl<A> ResizableGridMap<A, na::U2, nd::Ix2> for GridMap2<A>
-where
-    A: na::Scalar,
-{
-    fn resize(&mut self, bounds: &Bounds<na::U2>, default_value: A) {
-        self.data = resized_ndarray2(
-            &self.data,
-            &self.bounds,
-            bounds,
-            self.resolution,
-            default_value,
-        );
-        self.bounds = bounds.clone();
-    }
-
-    fn resized(&self, bounds: &Bounds<na::U2>, default_value: A) -> GridMap2<A> {
-        GridMap2 {
-            data: resized_ndarray2(
-                &self.data,
-                &self.bounds,
-                bounds,
-                self.resolution,
-                default_value,
-            ),
-            bounds: bounds.clone(),
-            resolution: self.resolution,
-        }
-    }
-}
-
-// TODO(kgreenek): Support a generic resized method instead of copying it for 2d and 3d.
-// In a generic context, you can't use the ns::s![] macro, because it returns a fixed size
-// array rather than a <NdD as nd::Dimension>::SliceArg generic type that is required for
-// calling self.grid_map.data in a generic context.
-impl<A> ResizableGridMap<A, na::U3, nd::Ix3> for GridMap3<A>
-where
-    A: na::Scalar,
-{
-    fn resize(&mut self, bounds: &Bounds<na::U3>, default_value: A) {
-        self.data = resized_ndarray3(
-            &self.data,
-            &self.bounds,
-            bounds,
-            self.resolution,
-            default_value,
-        );
-        self.bounds = bounds.clone();
-    }
-
-    fn resized(&self, bounds: &Bounds<na::U3>, default_value: A) -> GridMap3<A> {
-        GridMap3 {
-            data: resized_ndarray3(
-                &self.data,
-                &self.bounds,
-                bounds,
-                self.resolution,
-                default_value,
-            ),
-            bounds: bounds.clone(),
-            resolution: self.resolution,
-        }
+        self.data = to_data;
     }
 }
 
@@ -292,6 +281,7 @@ where
             data: self.data.clone(),
             resolution: self.resolution,
             bounds: self.bounds.clone(),
+            tile_size: self.tile_size,
         }
     }
 }
@@ -316,7 +306,8 @@ where
     return nd::Array::<A, NdD>::from_shape_vec(size_cells.to_ndindex(), array_vec).unwrap();
 }
 
-fn resized_ndarray2<A>(
+// This is unused due to the floating point errors.
+fn _resized_ndarray2<A>(
     data: &nd::Array<A, nd::Ix2>,
     from_bounds: &Bounds<na::U2>,
     to_bounds: &Bounds<na::U2>,
@@ -352,7 +343,8 @@ where
     to_data
 }
 
-fn resized_ndarray3<A>(
+// This is unused due to the floating point errors.
+fn _resized_ndarray3<A>(
     data: &nd::Array<A, nd::Ix3>,
     from_bounds: &Bounds<na::U3>,
     to_bounds: &Bounds<na::U3>,
@@ -395,12 +387,15 @@ mod tests {
     use crate as kuba;
     use kuba::prelude::*;
 
+    const TILE_SIZE: usize = 2;
+
     #[test]
     fn get2() {
         let grid_map = kuba::GridMap2f::from_ndarray(
             nd::array![[1.0, 2.0], [10.0, 20.0]],
             0.1,
             kuba::bounds2![[0.0, 0.0], [0.2, 0.2]],
+            TILE_SIZE,
         );
         assert_eq!(grid_map.get(&kuba::cell2![0, 0]), 1.0);
         assert_eq!(grid_map.get(&kuba::cell2![0, 1]), 2.0);
@@ -417,6 +412,7 @@ mod tests {
             ],
             0.1,
             kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            TILE_SIZE,
         );
         assert_eq!(grid_map.get(&kuba::cell3![0, 0, 0]), 111.0);
         assert_eq!(grid_map.get(&kuba::cell3![0, 0, 1]), 112.0);
@@ -434,6 +430,7 @@ mod tests {
             nd::array![[1.0, 2.0], [10.0, 20.0]],
             0.1,
             kuba::bounds2![[0.0, 0.0], [0.2, 0.2]],
+            TILE_SIZE,
         );
         grid_map.set(&kuba::cell2![0, 0], 15.0);
         assert_eq!(grid_map.get(&kuba::cell2![0, 0]), 15.0);
@@ -448,6 +445,7 @@ mod tests {
             ],
             0.1,
             kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            TILE_SIZE,
         );
         grid_map.set(&kuba::cell3![0, 0, 0], 15.0);
         grid_map.set(&kuba::cell3![0, 1, 0], 25.0);
@@ -456,177 +454,108 @@ mod tests {
     }
 
     #[test]
-    fn resized2_nominal() {
-        let grid_map =
-            kuba::GridMap2f::from_bounds(0.1, kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], 1.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[0.1, 0.1], [0.3, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 0.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[-0.1, -0.1], [0.1, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 1.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[-0.1, 0.1], [0.1, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 0.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[0.1, -0.1], [0.3, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 0.0);
+    fn expand_bounds2_nominal() {
+        let mut grid_map =
+            kuba::GridMap2f::new(0.1, kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], TILE_SIZE, 1.0);
+        grid_map.expand_bounds(&kuba::bounds2![[0.1, 0.1], [0.3, 0.3]], 0.0);
+        let mut expected_data = nd::Array2::<f32>::zeros((4, 4));
+        expected_data[(0, 0)] = 1.0;
+        expected_data[(0, 1)] = 1.0;
+        expected_data[(1, 0)] = 1.0;
+        expected_data[(1, 1)] = 1.0;
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds2![[0.0, 0.0], [0.4, 0.4]]
+        ));
+        assert_eq!(grid_map.data, expected_data);
+
+        let mut grid_map =
+            kuba::GridMap2f::new(0.1, kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], TILE_SIZE, 1.0);
+        grid_map.expand_bounds(&kuba::bounds2![[-0.1, -0.1], [0.1, 0.1]], 0.0);
+        let mut expected_data = nd::Array2::<f32>::zeros((4, 4));
+        expected_data[(2, 2)] = 1.0;
+        expected_data[(2, 3)] = 1.0;
+        expected_data[(3, 2)] = 1.0;
+        expected_data[(3, 3)] = 1.0;
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds2![[-0.2, -0.2], [0.2, 0.2]]
+        ));
+        assert_eq!(grid_map.data, expected_data);
     }
 
     #[test]
-    fn resized3_nominal() {
-        let grid_map = kuba::GridMap3f::from_bounds(
+    fn expand_bounds3_nominal() {
+        let mut grid_map = kuba::GridMap3f::new(
             0.1,
             kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            TILE_SIZE,
             1.0,
         );
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.1, 0.1, 0.1], [0.3, 0.3, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.1, 0.1, -0.1], [0.3, 0.3, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.1, -0.1, 0.1], [0.3, 0.1, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.1, -0.1, -0.1], [0.3, 0.1, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[-0.1, 0.1, 0.1], [0.1, 0.3, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[-0.1, 0.1, -0.1], [0.1, 0.3, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[-0.1, -0.1, 0.1], [0.1, 0.1, 0.3]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[-0.1, -0.1, -0.1], [0.1, 0.1, 0.1]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 1.0);
-    }
+        grid_map.expand_bounds(&kuba::bounds3![[0.1, 0.1, 0.1], [0.3, 0.3, 0.3]], 0.0);
+        let mut expected_data = nd::Array3::<f32>::zeros((4, 4, 4));
+        expected_data[(0, 0, 0)] = 1.0;
+        expected_data[(0, 0, 1)] = 1.0;
+        expected_data[(0, 1, 0)] = 1.0;
+        expected_data[(0, 1, 1)] = 1.0;
+        expected_data[(1, 0, 0)] = 1.0;
+        expected_data[(1, 0, 1)] = 1.0;
+        expected_data[(1, 1, 0)] = 1.0;
+        expected_data[(1, 1, 1)] = 1.0;
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds3![[0.0, 0.0, 0.0], [0.4, 0.4, 0.4]]
+        ));
+        assert_eq!(grid_map.data, expected_data);
 
-    #[test]
-    fn resized2_no_overlap() {
-        let grid_map =
-            kuba::GridMap2f::from_bounds(0.1, kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], 1.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[0.3, 0.3], [0.5, 0.5]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 0.0);
-    }
-
-    #[test]
-    fn resized3_no_overlap() {
-        let grid_map = kuba::GridMap3f::from_bounds(
+        let mut grid_map = kuba::GridMap3f::new(
             0.1,
             kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            TILE_SIZE,
             1.0,
         );
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.3, 0.3, 0.3], [0.5, 0.5, 0.5]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 0.0);
+        grid_map.expand_bounds(&kuba::bounds3![[-0.1, -0.1, -0.1], [0.1, 0.1, 0.1]], 0.0);
+        let mut expected_data = nd::Array3::<f32>::zeros((4, 4, 4));
+        expected_data[(2, 2, 2)] = 1.0;
+        expected_data[(2, 2, 3)] = 1.0;
+        expected_data[(2, 3, 2)] = 1.0;
+        expected_data[(2, 3, 3)] = 1.0;
+        expected_data[(3, 2, 2)] = 1.0;
+        expected_data[(3, 2, 3)] = 1.0;
+        expected_data[(3, 3, 2)] = 1.0;
+        expected_data[(3, 3, 3)] = 1.0;
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds3![[-0.2, -0.2, -0.2], [0.2, 0.2, 0.2]]
+        ));
+        assert_eq!(grid_map.data, expected_data);
     }
 
     #[test]
-    fn resized2_all_overlap() {
-        let grid_map =
-            kuba::GridMap2f::from_bounds(0.1, kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], 1.0);
-        let resized_grid_map = grid_map.resized(&kuba::bounds2![[0.0, 0.0], [0.2, 0.2]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell2![1, 1]), 1.0);
+    fn expand_bounds2_empty() {
+        let mut grid_map =
+            kuba::GridMap2f::new(0.1, kuba::bounds2![[0.0, 0.0], [0.0, 0.0]], TILE_SIZE, 1.0);
+        grid_map.expand_bounds(&kuba::bounds2![[0.3, 0.3], [0.4, 0.4]], 0.0);
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds2![[0.2, 0.2], [0.6, 0.6]]
+        ));
+        assert_eq!(grid_map.data, nd::Array2::<f32>::zeros((4, 4)));
     }
 
     #[test]
-    fn resized3_all_overlap() {
-        let grid_map = kuba::GridMap3f::from_bounds(
+    fn expand_bounds3_empty() {
+        let mut grid_map = kuba::GridMap3f::new(
             0.1,
-            kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]],
+            kuba::bounds3![[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            TILE_SIZE,
             1.0,
         );
-        let resized_grid_map =
-            grid_map.resized(&kuba::bounds3![[0.0, 0.0, 0.0], [0.2, 0.2, 0.2]], 0.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![0, 1, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 0, 1]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 0]), 1.0);
-        assert_eq!(resized_grid_map.get(&kuba::cell3![1, 1, 1]), 1.0);
+        grid_map.expand_bounds(&kuba::bounds3![[0.3, 0.3, 0.3], [0.4, 0.4, 0.4]], 0.0);
+        assert!(approx::relative_eq!(
+            grid_map.bounds(),
+            kuba::bounds3![[0.2, 0.2, 0.2], [0.6, 0.6, 0.6]]
+        ));
+        assert_eq!(grid_map.data, nd::Array3::<f32>::zeros((4, 4, 4)));
     }
 }

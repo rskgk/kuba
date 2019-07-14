@@ -3,6 +3,7 @@ use crate::geom::Cell;
 use crate::geom::CellToNdIndex;
 use crate::geom::Point;
 use crate::geom::PointCloud;
+use crate::map::grid_map;
 use crate::map::grid_map::ExpandableGridMap;
 use crate::map::grid_map::GridMap;
 use crate::map::GridMapN;
@@ -37,36 +38,22 @@ where
     <na::DefaultAllocator as na::allocator::Allocator<isize, NaD>>::Buffer: std::hash::Hash,
     na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
-    pub fn default(resolution: f32) -> Self {
-        Self::empty(NM::default_noise_model(), resolution)
+    pub fn default() -> Self {
+        Self::new(
+            NM::default_noise_model(),
+            grid_map::DEFAULT_RESOLUTION,
+            grid_map::DEFAULT_TILE_SIZE,
+        )
     }
 
-    pub fn empty(noise_model: NM, resolution: f32) -> Self {
+    pub fn new(noise_model: NM, resolution: f32, tile_size: usize) -> Self {
         OccupancyGridMapN {
-            grid_map: GridMapN::from_bounds(
+            grid_map: GridMapN::new(
                 resolution,
                 Bounds::empty(),
+                tile_size,
                 noise_model.default_cell_value(),
             ),
-            noise_model: noise_model,
-        }
-    }
-
-    pub fn from_ndarray(
-        noise_model: NM,
-        ndarray: nd::Array<f32, NdD>,
-        resolution: f32,
-        bounds: Bounds<NaD>,
-    ) -> Self {
-        OccupancyGridMapN {
-            grid_map: GridMapN::from_ndarray(ndarray, resolution, bounds),
-            noise_model: noise_model,
-        }
-    }
-
-    pub fn from_bounds(noise_model: NM, resolution: f32, bounds: Bounds<NaD>) -> Self {
-        OccupancyGridMapN {
-            grid_map: GridMapN::from_bounds(resolution, bounds, noise_model.default_cell_value()),
             noise_model: noise_model,
         }
     }
