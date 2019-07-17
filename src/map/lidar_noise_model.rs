@@ -35,11 +35,11 @@ impl LidarNoiseModel {
         occupied_threshold: f32,
         max_range: f32,
     ) -> Self {
-        assert!(hit_probability >= 0.0 and hit_probability <= 1.0);
-        assert!(miss_probability >= 0.0 and miss_probability <= 1.0);
-        assert!(min_probability >= 0.0 and min_probability <= 1.0);
-        assert!(max_probability >= 0.0 and max_probability <= 1.0);
-        assert!(occupied_threshold >= 0.0 and occupied_threshold <= 1.0);
+        assert!(hit_probability >= 0.0 && hit_probability <= 1.0);
+        assert!(miss_probability >= 0.0 && miss_probability <= 1.0);
+        assert!(min_probability >= 0.0 && min_probability <= 1.0);
+        assert!(max_probability >= 0.0 && max_probability <= 1.0);
+        assert!(occupied_threshold >= 0.0 && occupied_threshold <= 1.0);
         LidarNoiseModel {
             hit_probability_logodds: math::logodds_from_probability(hit_probability),
             miss_probability_logodds: math::logodds_from_probability(miss_probability),
