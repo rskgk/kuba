@@ -15,7 +15,7 @@ pub type LidarOccupancyGridMap2 = LidarOccupancyGridMap<na::U2, nd::Ix2>;
 pub type LidarOccupancyGridMap3 = LidarOccupancyGridMap<na::U3, nd::Ix3>;
 
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
-// generic dimention parameter.
+// generic dimension parameter.
 pub struct OccupancyGridMapN<NM, NaD, NdD>
 where
     NM: NoiseModel<NaD, NdD>,

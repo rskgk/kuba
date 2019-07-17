@@ -71,7 +71,7 @@ where
 }
 
 // TODO(kgreenek): It's annoying to have to expose NaD and NdD. Figure out a way to just have one
-// generic dimention parameter.
+// generic dimension parameter.
 pub struct GridMapN<A, NaD, NdD>
 where
     NaD: na::DimName,
