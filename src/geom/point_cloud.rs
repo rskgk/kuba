@@ -40,6 +40,10 @@ where
         })
     }
 
+    pub fn num_points(&self) -> usize {
+        self.data.shape().1
+    }
+
     /// Returns the bounds that encapsulates all the points in the point cloud.
     pub fn bounds(&self) -> Bounds<NaD> {
         self.points_iter()
@@ -87,5 +91,19 @@ mod tests {
         let point_cloud = kuba::PointCloud2::from_points(&points);
         let expected_bounds = kuba::bounds2![[0.0, -1.2], [1.1, 1.2]];
         assert!(approx::relative_eq!(point_cloud.bounds(), expected_bounds));
+    }
+
+    #[test]
+    fn test_num_points() {
+        let point_cloud = kuba::PointCloud2::from_points(&[
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+            kuba::point2![0.0, 0.0],
+        ]);
+        assert_eq!(point_cloud.num_points(), 7);
     }
 }
