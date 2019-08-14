@@ -50,17 +50,59 @@ where
         Self::from_cell_bounds(&cell_bounds, resolution)
     }
 
+    /// The same as from_size_cells, but with n-dimensional resolution.
+    pub fn from_size_cells_n(
+        size_cells: &Cell<NaD>,
+        resolution: &Point<NaD>,
+        offset: &Cell<NaD>,
+    ) -> Self {
+        let cell_bounds = CellBounds::<NaD> {
+            min: Cell::<NaD>::from(Cell::<NaD>::origin() + offset),
+            max: Cell::<NaD>::from(size_cells + offset),
+        };
+        Self::from_cell_bounds_n(&cell_bounds, &resolution)
+    }
+
     pub fn from_cell_bounds(cell_bounds: &CellBounds<NaD>, resolution: f32) -> Self {
+        let half_resolution = resolution * 0.5;
         Bounds {
             min: Point::<NaD>::from(
                 converter::point_from_cell(&cell_bounds.min, &Point::<NaD>::origin(), resolution)
                     .coords
-                    .map(|coord| coord - resolution * 0.5),
+                    .map(|coord| coord - half_resolution),
             ),
             max: Point::<NaD>::from(
                 converter::point_from_cell(&cell_bounds.max, &Point::<NaD>::origin(), resolution)
                     .coords
-                    .map(|coord| coord + resolution * 0.5 - resolution),
+                    .map(|coord| coord - half_resolution),
+            ),
+        }
+    }
+
+    /// The same as from_cell_bounds, but with n-dimensional resolution.
+    pub fn from_cell_bounds_n(cell_bounds: &CellBounds<NaD>, resolution: &Point<NaD>) -> Self {
+        Bounds {
+            min: Point::<NaD>::from(
+                converter::point_from_cell_n(
+                    &cell_bounds.min,
+                    &Point::<NaD>::origin(),
+                    &resolution,
+                )
+                .coords
+                .zip_map(&resolution.coords, |coord, resolution_coord| {
+                    coord - resolution_coord * 0.5
+                }),
+            ),
+            max: Point::<NaD>::from(
+                converter::point_from_cell_n(
+                    &cell_bounds.max,
+                    &Point::<NaD>::origin(),
+                    &resolution,
+                )
+                .coords
+                .zip_map(&resolution.coords, |coord, resolution_coord| {
+                    coord - resolution_coord * 0.5
+                }),
             ),
         }
     }
@@ -191,6 +233,28 @@ mod tests {
     }
 
     #[test]
+    fn from_cell_bounds_n2() {
+        let resolution = kuba::point2![0.1, 0.2];
+        let cell_bounds = kuba::cell_bounds2![[-1, -1], [2, 2]];
+        let expected_bounds = kuba::bounds2![[-0.1, -0.2], [0.2, 0.4]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U2>::from_cell_bounds_n(&cell_bounds, &resolution),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_cell_bounds_n3() {
+        let resolution = kuba::point3![0.1, 0.2, 0.3];
+        let cell_bounds = kuba::cell_bounds3![[-1, -1, -1], [2, 2, 2]];
+        let expected_bounds = kuba::bounds3![[-0.1, -0.2, -0.3], [0.2, 0.4, 0.6]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U3>::from_cell_bounds_n(&cell_bounds, &resolution),
+            expected_bounds
+        ));
+    }
+
+    #[test]
     fn from_size_cells2() {
         let resolution = 0.1;
         let size_cells = kuba::cell2![3, 3];
@@ -210,6 +274,30 @@ mod tests {
         let expected_bounds = kuba::bounds3![[-0.1, -0.1, -0.1], [0.2, 0.2, 0.2]];
         assert!(approx::relative_eq!(
             kuba::Bounds::<na::U3>::from_size_cells(&size_cells, resolution, &offset),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_size_cells_n2() {
+        let resolution = kuba::point2![0.1, 0.2];
+        let size_cells = kuba::cell2![3, 3];
+        let offset = kuba::cell2![-1, -1];
+        let expected_bounds = kuba::bounds2![[-0.1, -0.2], [0.2, 0.4]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U2>::from_size_cells_n(&size_cells, &resolution, &offset),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_size_cells_n3() {
+        let resolution = kuba::point3![0.1, 0.2, 0.3];
+        let size_cells = kuba::cell3![3, 3, 3];
+        let offset = kuba::cell3![-1, -1, -1];
+        let expected_bounds = kuba::bounds3![[-0.1, -0.2, -0.3], [0.2, 0.4, 0.6]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U3>::from_size_cells_n(&size_cells, &resolution, &offset),
             expected_bounds
         ));
     }
