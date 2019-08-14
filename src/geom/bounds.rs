@@ -42,6 +42,14 @@ where
         Bounds::new(Point::<NaD>::origin(), Point::<NaD>::origin())
     }
 
+    pub fn from_size_cells(size_cells: &Cell<NaD>, resolution: f32, offset: &Cell<NaD>) -> Self {
+        let cell_bounds = CellBounds::<NaD> {
+            min: Cell::<NaD>::from(Cell::<NaD>::origin() + offset),
+            max: Cell::<NaD>::from(size_cells + offset),
+        };
+        Self::from_cell_bounds(&cell_bounds, resolution)
+    }
+
     pub fn from_cell_bounds(cell_bounds: &CellBounds<NaD>, resolution: f32) -> Self {
         Bounds {
             min: Point::<NaD>::from(
@@ -159,6 +167,53 @@ where
 #[cfg(test)]
 mod tests {
     use crate as kuba;
+
+    #[test]
+    fn from_cell_bounds2() {
+        let resolution = 0.1;
+        let cell_bounds = kuba::cell_bounds2![[-1, -1], [2, 2]];
+        let expected_bounds = kuba::bounds2![[-0.1, -0.1], [0.2, 0.2]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U2>::from_cell_bounds(&cell_bounds, resolution),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_cell_bounds3() {
+        let resolution = 0.1;
+        let cell_bounds = kuba::cell_bounds3![[-1, -1, -1], [2, 2, 2]];
+        let expected_bounds = kuba::bounds3![[-0.1, -0.1, -0.1], [0.2, 0.2, 0.2]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U3>::from_cell_bounds(&cell_bounds, resolution),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_size_cells2() {
+        let resolution = 0.1;
+        let size_cells = kuba::cell2![3, 3];
+        let offset = kuba::cell2![-1, -1];
+        let expected_bounds = kuba::bounds2![[-0.1, -0.1], [0.2, 0.2]];
+        println!("{:?}", kuba::Bounds::<na::U2>::from_size_cells(&size_cells, resolution, &offset));
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U2>::from_size_cells(&size_cells, resolution, &offset),
+            expected_bounds
+        ));
+    }
+
+    #[test]
+    fn from_size_cells3() {
+        let resolution = 0.1;
+        let size_cells = kuba::cell3![3, 3, 3];
+        let offset = kuba::cell3![-1, -1, -1];
+        let expected_bounds = kuba::bounds3![[-0.1, -0.1, -0.1], [0.2, 0.2, 0.2]];
+        assert!(approx::relative_eq!(
+            kuba::Bounds::<na::U3>::from_size_cells(&size_cells, resolution, &offset),
+            expected_bounds
+        ));
+    }
 
     #[test]
     fn discretized2() {
