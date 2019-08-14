@@ -196,7 +196,6 @@ mod tests {
         let size_cells = kuba::cell2![3, 3];
         let offset = kuba::cell2![-1, -1];
         let expected_bounds = kuba::bounds2![[-0.1, -0.1], [0.2, 0.2]];
-        println!("{:?}", kuba::Bounds::<na::U2>::from_size_cells(&size_cells, resolution, &offset));
         assert!(approx::relative_eq!(
             kuba::Bounds::<na::U2>::from_size_cells(&size_cells, resolution, &offset),
             expected_bounds
