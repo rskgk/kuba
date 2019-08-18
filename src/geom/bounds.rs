@@ -44,8 +44,8 @@ where
 
     pub fn from_size_cells(size_cells: &Cell<NaD>, resolution: f32, offset: &Cell<NaD>) -> Self {
         let cell_bounds = CellBounds::<NaD> {
-            min: Cell::<NaD>::from(Cell::<NaD>::origin() + offset),
-            max: Cell::<NaD>::from(size_cells + offset),
+            min: Cell::<NaD>::from(Cell::<NaD>::origin() + &offset.coords),
+            max: Cell::<NaD>::from(size_cells + &offset.coords),
         };
         Self::from_cell_bounds(&cell_bounds, resolution)
     }
@@ -57,8 +57,8 @@ where
         offset: &Cell<NaD>,
     ) -> Self {
         let cell_bounds = CellBounds::<NaD> {
-            min: Cell::<NaD>::from(Cell::<NaD>::origin() + offset),
-            max: Cell::<NaD>::from(size_cells + offset),
+            min: Cell::<NaD>::from(Cell::<NaD>::origin() + &offset.coords),
+            max: Cell::<NaD>::from(size_cells + &offset.coords),
         };
         Self::from_cell_bounds_n(&cell_bounds, &resolution)
     }
