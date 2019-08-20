@@ -4,7 +4,7 @@ use crate::geom::Point;
 pub type PointCloud2 = PointCloud<na::U2>;
 pub type PointCloud3 = PointCloud<na::U3>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PointCloud<NaD>
 where
     NaD: na::DimName,

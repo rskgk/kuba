@@ -53,6 +53,21 @@ where
     /// If the point lies exactly on a cell boundary, the higher cell is returned.
     #[inline]
     fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD>;
+
+    #[inline]
+    fn track_changes(&self) -> bool;
+
+    #[inline]
+    fn set_track_changes(&mut self, value: bool);
+
+    #[inline]
+    fn changed_cells(&self) -> Vec<Cell<NaD>>;
+
+    #[inline]
+    fn clear_changed_cells(&mut self);
+
+    #[inline]
+    fn add_changed_cells(&mut self, cells: Vec<Cell<NaD>>);
 }
 
 pub trait ExpandableGridMap<A, NaD, NdD>: GridMap<A, NaD, NdD>
@@ -75,12 +90,15 @@ where
 pub struct GridMapN<A, NaD, NdD>
 where
     NaD: na::DimName,
-    na::DefaultAllocator: na::allocator::Allocator<f32, NaD>,
+    na::DefaultAllocator: na::allocator::Allocator<f32, NaD> + na::allocator::Allocator<isize, NaD>,
 {
     pub data: nd::Array<A, NdD>,
     pub resolution: f32,
     pub bounds: Bounds<NaD>,
     pub tile_size: usize,
+
+    track_changes: bool,
+    changed_cells: Vec<Cell<NaD>>,
 }
 
 impl<A, NaD, NdD> GridMapN<A, NaD, NdD>
@@ -99,6 +117,8 @@ where
             resolution: resolution,
             bounds: bounds,
             tile_size: tile_size,
+            track_changes: false,
+            changed_cells: vec![],
         }
     }
 
@@ -109,6 +129,8 @@ where
             resolution: DEFAULT_RESOLUTION,
             bounds: Bounds::empty(),
             tile_size: DEFAULT_TILE_SIZE,
+            track_changes: false,
+            changed_cells: vec![],
         }
     }
 
@@ -124,6 +146,8 @@ where
             resolution: resolution,
             bounds: bounds,
             tile_size: tile_size,
+            track_changes: false,
+            changed_cells: vec![],
         }
     }
 }
@@ -166,6 +190,31 @@ where
     #[inline]
     fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD> {
         geom::converter::cell_from_point(point, &self.bounds.min, self.resolution)
+    }
+
+    #[inline]
+    fn track_changes(&self) -> bool {
+        self.track_changes
+    }
+
+    #[inline]
+    fn set_track_changes(&mut self, value: bool) {
+        self.track_changes = value;
+    }
+
+    #[inline]
+    fn changed_cells(&self) -> Vec<Cell<NaD>> {
+        self.changed_cells.clone()
+    }
+
+    #[inline]
+    fn clear_changed_cells(&mut self) {
+        self.changed_cells.clear();
+    }
+
+    #[inline]
+    fn add_changed_cells(&mut self, cells: Vec<Cell<NaD>>) {
+        self.changed_cells.extend(cells);
     }
 }
 
@@ -282,6 +331,8 @@ where
             resolution: self.resolution,
             bounds: self.bounds.clone(),
             tile_size: self.tile_size,
+            track_changes: self.track_changes,
+            changed_cells: self.changed_cells.clone(),
         }
     }
 }
