@@ -41,7 +41,7 @@ fn gps_to_meters(
 }
 
 pub fn read(
-    input: &mut std::io::Read,
+    input: &mut dyn std::io::Read,
     gps_origin: Option<na::Translation3<f64>>,
 ) -> std::io::Result<(Pose3, na::Translation3<f64>)> {
     let mut buffer = String::new();

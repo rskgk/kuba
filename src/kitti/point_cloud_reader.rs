@@ -3,7 +3,7 @@ use byteorder::ReadBytesExt;
 use crate::geom::PointCloud3;
 use crate::kitti;
 
-pub fn read(input: &mut std::io::Read) -> std::io::Result<PointCloud3> {
+pub fn read(input: &mut dyn std::io::Read) -> std::io::Result<PointCloud3> {
     // Kitti points clouds are stored as f32 binary blobs where each point is sequentially stored as
     // [x, y, z, intensity]. We just discard the intensity values.
     // Read the whole file into memory and parse it into a matrix in as one chunk of memory,
