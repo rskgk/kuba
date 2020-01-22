@@ -106,4 +106,29 @@ where
     fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD> {
         self.grid_map.cell_from_point(point)
     }
+
+    #[inline]
+    fn track_changes(&self) -> bool {
+        self.grid_map.track_changes()
+    }
+
+    #[inline]
+    fn set_track_changes(&mut self, value: bool) {
+        self.grid_map.set_track_changes(value);
+    }
+
+    #[inline]
+    fn changed_cells(&self) -> Vec<Cell<NaD>> {
+        self.grid_map.changed_cells()
+    }
+
+    #[inline]
+    fn clear_changed_cells(&mut self) {
+        self.grid_map.clear_changed_cells();
+    }
+
+    #[inline]
+    fn add_changed_cells(&mut self, cells: Vec<Cell<NaD>>) {
+        self.grid_map.add_changed_cells(cells);
+    }
 }

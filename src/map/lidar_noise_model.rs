@@ -127,11 +127,29 @@ where
             grid_map.resolution(),
             self.max_range,
         );
+
+        let track_changes = grid_map.track_changes();
+        let mut changed_cells: Vec<Cell<NaD>> = vec![];
+
+        if track_changes {
+            changed_cells.reserve(free_cells.len() + occupied_cells.len());
+        }
+
         for cell in &free_cells {
             self.integrate_miss(grid_map, cell);
+            if track_changes {
+                changed_cells.push(cell.clone());
+            }
         }
         for cell in &occupied_cells {
             self.integrate_hit(grid_map, cell);
+            if track_changes {
+                changed_cells.push(cell.clone());
+            }
+        }
+
+        if track_changes {
+            grid_map.add_changed_cells(changed_cells);
         }
     }
 
