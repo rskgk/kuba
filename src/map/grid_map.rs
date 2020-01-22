@@ -45,19 +45,10 @@ where
     /// If the point lies exactly on a cell boundary, the higher cell is returned.
     fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD>;
 
-    #[inline]
     fn track_changes(&self) -> bool;
-
-    #[inline]
     fn set_track_changes(&mut self, value: bool);
-
-    #[inline]
     fn changed_cells(&self) -> Vec<Cell<NaD>>;
-
-    #[inline]
     fn clear_changed_cells(&mut self);
-
-    #[inline]
     fn add_changed_cells(&mut self, cells: Vec<Cell<NaD>>);
 }
 
