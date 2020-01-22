@@ -13,7 +13,7 @@ pub const DEFAULT_MISS_PROBABILITY: f32 = 0.4; // -0.4 in logodds
 pub const DEFAULT_MIN_PROBABILITY: f32 = 0.1192; // -2.0 in logodds
 pub const DEFAULT_MAX_PROBABILITY: f32 = 0.971; // 3.5 in logodds
 pub const DEFAULT_OCCUPIED_THRESHOLD: f32 = 0.5; // 0.0 in logodds
-pub const DEFAULT_MAX_RANGE: f32 = 10.0; // meters
+pub const DEFAULT_MAX_RANGE: f32 = 60.0; // meters
 
 /// An approximate noise model for lidar point clouds.
 /// Values are stored in logodds to prevent semi-expensive log calculations for each cell update.
