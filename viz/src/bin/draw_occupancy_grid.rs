@@ -51,70 +51,62 @@ struct AppState {
 
 impl AppState {
     fn integrate_next_pointcloud(&mut self) {
-        if self.grid_updater.finished.load(atomic::Ordering::Relaxed) {
-            {
-                let mut changed_cells = self.grid_updater.changed_cells.lock().unwrap();
-                let gridmap = self.grid_updater.grid_map.lock().unwrap();
-
-                for cell in changed_cells.iter() {
-                    let occupied = gridmap.occupied(cell);
-                    if occupied {
-                        if !self.tracked_cells.contains_key(cell) {
-                            self.tracked_cells
-                                .insert(*cell, gridmap.point_from_cell(cell));
-                        }
-                    } else {
-                        if self.tracked_cells.contains_key(cell) {
-                            self.tracked_cells.remove(cell);
-                        }
+        if !self.grid_updater.finished.load(atomic::Ordering::Relaxed) {
+            return;
+        }
+        {
+            let mut changed_cells = self.grid_updater.changed_cells.lock().unwrap();
+            let grid_map = self.grid_updater.grid_map.lock().unwrap();
+            for cell in changed_cells.iter() {
+                let occupied = grid_map.occupied(cell);
+                if occupied {
+                    if !self.tracked_cells.contains_key(cell) {
+                        self.tracked_cells
+                            .insert(*cell, grid_map.point_from_cell(cell));
+                    }
+                } else {
+                    if self.tracked_cells.contains_key(cell) {
+                        self.tracked_cells.remove(cell);
                     }
                 }
-                changed_cells.clear();
             }
-
-            self.grid_updater.finished.store(false, atomic::Ordering::Relaxed);
-
-            let grid_updater = self.grid_updater.clone();
-            let origin = kuba::Point3::from(self.poses[self.index].translation.vector);
-            let point_cloud = self.point_clouds[self.index].clone();
-
-            std::thread::spawn(move || {
-                let mut gridmap = grid_updater.grid_map.lock().unwrap();
-
-                gridmap.set_track_changes(true);
-                gridmap.integrate_point_cloud(&origin, &point_cloud);
-                {
-                    let mut changed_cells = grid_updater.changed_cells.lock().unwrap();
-                    *changed_cells = gridmap.changed_cells();
-                }
-                gridmap.clear_changed_cells();
-                gridmap.set_track_changes(false);
-
-                grid_updater.finished.store(true, atomic::Ordering::Relaxed);
-            });
-
-            self.index = (self.index + 1) % self.point_clouds.len();
+            changed_cells.clear();
         }
+        self.grid_updater
+            .finished
+            .store(false, atomic::Ordering::Relaxed);
+        let grid_updater = self.grid_updater.clone();
+        let origin = kuba::Point3::from(self.poses[self.index].translation.vector);
+        let point_cloud = self.point_clouds[self.index].clone();
+        std::thread::spawn(move || {
+            let mut grid_map = grid_updater.grid_map.lock().unwrap();
+            grid_map.set_track_changes(true);
+            grid_map.integrate_point_cloud(&origin, &point_cloud);
+            {
+                let mut changed_cells = grid_updater.changed_cells.lock().unwrap();
+                *changed_cells = grid_map.changed_cells();
+            }
+            grid_map.clear_changed_cells();
+            grid_map.set_track_changes(false);
+            grid_updater.finished.store(true, atomic::Ordering::Relaxed);
+        });
+        self.index = (self.index + 1) % self.point_clouds.len();
     }
 }
 
 impl kiss3d::window::State for AppState {
     fn step(&mut self, window: &mut kiss3d::window::Window) {
         self.integrate_next_pointcloud();
-
         let color = na::Point3::new(0.0, 0.6, 0.8);
-
         for (_, point) in &self.tracked_cells {
             window.draw_point(&point, &color);
         }
-
         draw_frame_marker(window, &self.poses[self.index], 1.0);
     }
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    //have to use index 1, 0 is the program that is being envoked
     let path = std::path::Path::new(&args[1]);
     if !path.exists() || !path.is_dir() {
         println!("Invalid source folder");
@@ -137,7 +129,6 @@ fn main() {
     let mut window = kiss3d::window::Window::new("Kuba Vizualizer");
     window.set_light(kiss3d::light::Light::StickToCamera);
     window.set_point_size(1.0);
-
     let state = AppState {
         poses: poses,
         point_clouds: point_clouds,
