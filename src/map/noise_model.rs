@@ -16,7 +16,6 @@ where
     fn default_noise_model() -> Self;
 
     /// Returns the default value for a cell whose probability is unknown.
-    #[inline]
     fn default_cell_value(&self) -> f32;
 
     /// Updates the probability values in the given grid map from the given point cloud according

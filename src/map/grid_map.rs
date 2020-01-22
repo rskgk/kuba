@@ -31,27 +31,18 @@ where
         + na::allocator::Allocator<f32, NaD>
         + na::allocator::Allocator<isize, NaD>,
 {
-    #[inline]
     fn get(&self, cell: &Cell<NaD>) -> A;
-
-    #[inline]
     fn set(&mut self, cell: &Cell<NaD>, value: A);
-
-    #[inline]
     fn resolution(&self) -> f32;
-
-    #[inline]
     fn bounds(&self) -> Bounds<NaD>;
 
     /// Returns the point at the center of the given cell.
     /// We use the center of the cell instead of the top left corner to avoid issues with floating
     /// point rounding.
-    #[inline]
     fn point_from_cell(&self, cell: &Cell<NaD>) -> Point<NaD>;
 
     /// Returns the cell corresponding to the given point.
     /// If the point lies exactly on a cell boundary, the higher cell is returned.
-    #[inline]
     fn cell_from_point(&self, point: &Point<NaD>) -> Cell<NaD>;
 }
 

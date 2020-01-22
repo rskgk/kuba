@@ -10,7 +10,6 @@ where
     NdD: nd::Dimension,
     na::DefaultAllocator: na::allocator::Allocator<isize, NaD>,
 {
-    #[inline]
     fn to_ndindex(&self) -> NdD;
 }
 
