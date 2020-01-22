@@ -1,7 +1,6 @@
 extern crate approx;
 extern crate byteorder;
 extern crate nalgebra as na;
-#[macro_use(s)]
 extern crate ndarray as nd;
 
 pub mod geom;
