@@ -146,7 +146,7 @@ where
 {
     #[inline]
     fn get(&self, cell: &Cell<NaD>) -> A {
-        self.data[cell.to_ndindex()]
+        self.data[cell.to_ndindex()].clone()
     }
 
     #[inline]
