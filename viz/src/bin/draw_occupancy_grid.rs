@@ -27,7 +27,7 @@ fn draw_frame_marker(window: &mut kiss3d::window::Window, pose: &kuba::Pose3, le
 
 struct GridUpdater {
     grid_map: std::sync::Mutex<kuba::LidarOccupancyGridMap3>,
-    changed_cells: std::sync::Mutex<Vec<kuba::Cell<na::U3>>>,
+    changed_cells: std::sync::Mutex<Vec<kuba::Cell3>>,
     finished: atomic::AtomicBool,
 }
 
@@ -46,7 +46,7 @@ struct AppState {
     point_clouds: Vec<kuba::PointCloud3>,
     index: usize,
     grid_updater: std::sync::Arc<GridUpdater>,
-    tracked_cells: std::collections::HashMap<kuba::Cell<na::U3>, na::Point3<f32>>,
+    tracked_cells: std::collections::HashMap<kuba::Cell3, na::Point3<f32>>,
 }
 
 impl AppState {
