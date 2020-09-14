@@ -5,21 +5,15 @@ use super::*;
 /// point rounding.
 #[inline]
 pub fn point_coord_from_cell_coord(cell_coord: isize, offset: f32, resolution: f32) -> f32 {
-    (cell_coord as f32) * resolution + offset + resolution * 0.5
+    (cell_coord as f32) * resolution + offset
 }
 
 /// Returns the cell coord corresponding to the given point coord.
-/// If the point lies exactly on a cell boundary, the higher cell is returned.
+/// If the point lies exactly on a cell boundary, the precise cell that is returned is undefined due
+/// to floating point rounding.
 #[inline]
 pub fn cell_coord_from_point_coord(point_coord: f32, offset: f32, resolution: f32) -> isize {
-    let mut cell_coord = (point_coord - offset) / resolution;
-    if approx::relative_eq!(cell_coord, cell_coord.round(), epsilon = 0.00001) {
-        cell_coord = cell_coord + resolution * 0.5;
-    }
-    if cell_coord < 0.0 {
-        cell_coord -= 1.0;
-    }
-    cell_coord as isize
+    ((point_coord - offset) / resolution).round() as isize
 }
 
 /// Returns the point at the center of the given cell.
@@ -75,7 +69,8 @@ where
 }
 
 /// Returns the cell corresponding to the given point, using n-dimensional resolution.
-/// If the point lies exactly on a cell boundary, the higher cell is returned.
+/// If the point lies exactly on a cell boundary, the precise cell that is returned is undefined due
+/// to floating point rounding.
 #[inline]
 pub fn cell_from_point_n<NaD>(
     point: &Point<NaD>,
@@ -111,7 +106,7 @@ mod tests {
             let point_val = (i as f32) * 0.1;
             assert_eq!(
                 kuba::geom::converter::cell_from_point(
-                    &kuba::point2![point_val - 0.95, point_val - 1.95],
+                    &kuba::point2![point_val - 0.955, point_val - 1.955],
                     &offset,
                     resolution
                 ),
@@ -136,7 +131,7 @@ mod tests {
             let point_val = (i as f32) * 0.1;
             assert_eq!(
                 kuba::geom::converter::cell_from_point(
-                    &kuba::point3![point_val - 0.95, point_val - 1.95, point_val - 2.95],
+                    &kuba::point3![point_val - 0.955, point_val - 1.955, point_val - 2.955],
                     &offset,
                     resolution
                 ),
@@ -156,12 +151,12 @@ mod tests {
     #[test]
     fn point_from_cell2() {
         let resolution = 0.1;
-        let offset = kuba::point2![-1.0, -1.0];
+        let offset = kuba::point2![-1.0, -2.0];
         for i in -100..100 {
-            let point_val = (i as f32) * 0.1 - 0.95;
+            let point_val = (i as f32) * 0.1;
             assert!(approx::relative_eq!(
                 kuba::geom::converter::point_from_cell(&kuba::cell2![i, i], &offset, resolution),
-                kuba::point2![point_val, point_val]
+                kuba::point2![point_val - 1.0, point_val - 2.0]
             ));
         }
     }
@@ -174,13 +169,13 @@ mod tests {
             let point_val = (i as f32) * 0.1;
             assert!(approx::relative_eq!(
                 kuba::geom::converter::point_from_cell(&kuba::cell3![i, i, i], &offset, resolution),
-                kuba::point3![point_val - 0.95, point_val - 1.95, point_val - 2.95]
+                kuba::point3![point_val - 1.0, point_val - 2.0, point_val - 3.0]
             ));
         }
     }
 
     #[test]
-    fn point_from_cell_n2() {
+    fn cell_from_point_n2() {
         let resolution = kuba::point2![0.1, 0.2];
         let offset = kuba::point2![-1.0, -2.0];
         for i in -100..100 {
@@ -190,17 +185,10 @@ mod tests {
             } else {
                 i / 2
             };
+            println!("i {} point_val: {} y_index {}", i, point_val, y_index);
             assert_eq!(
                 kuba::geom::converter::cell_from_point_n(
-                    &kuba::point2![point_val - 0.95, point_val - 1.95],
-                    &offset,
-                    &resolution
-                ),
-                kuba::cell2![i, y_index]
-            );
-            assert_eq!(
-                kuba::geom::converter::cell_from_point_n(
-                    &kuba::point2![point_val - 1.0, point_val - 2.0],
+                    &kuba::point2![point_val - 0.955, point_val - 2.05],
                     &offset,
                     &resolution
                 ),
@@ -210,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn point_from_cell_n3() {
+    fn cell_from_point_n3() {
         let resolution = kuba::point3![0.1, 0.2, 0.3];
         let offset = kuba::point3![-1.0, -2.0, -3.0];
         for i in -100..100 {
@@ -227,15 +215,7 @@ mod tests {
             };
             assert_eq!(
                 kuba::geom::converter::cell_from_point_n(
-                    &kuba::point3![point_val - 0.95, point_val - 1.95, point_val - 2.95],
-                    &offset,
-                    &resolution
-                ),
-                kuba::cell3![i, y_index, z_index]
-            );
-            assert_eq!(
-                kuba::geom::converter::cell_from_point_n(
-                    &kuba::point3![point_val - 1.0, point_val - 2.0, point_val - 3.0],
+                    &kuba::point3![point_val - 1.045, point_val - 2.05, point_val - 3.055],
                     &offset,
                     &resolution
                 ),

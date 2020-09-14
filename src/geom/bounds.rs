@@ -64,45 +64,24 @@ where
     }
 
     pub fn from_cell_bounds(cell_bounds: &CellBounds<NaD>, resolution: f32) -> Self {
-        let half_resolution = resolution * 0.5;
         Bounds {
-            min: Point::<NaD>::from(
-                converter::point_from_cell(&cell_bounds.min, &Point::<NaD>::origin(), resolution)
-                    .coords
-                    .map(|coord| coord - half_resolution),
-            ),
-            max: Point::<NaD>::from(
-                converter::point_from_cell(&cell_bounds.max, &Point::<NaD>::origin(), resolution)
-                    .coords
-                    .map(|coord| coord - half_resolution),
-            ),
+            min: converter::point_from_cell(&cell_bounds.min, &Point::<NaD>::origin(), resolution),
+            max: converter::point_from_cell(&cell_bounds.max, &Point::<NaD>::origin(), resolution),
         }
     }
 
     /// The same as from_cell_bounds, but with n-dimensional resolution.
     pub fn from_cell_bounds_n(cell_bounds: &CellBounds<NaD>, resolution: &Point<NaD>) -> Self {
         Bounds {
-            min: Point::<NaD>::from(
-                converter::point_from_cell_n(
-                    &cell_bounds.min,
-                    &Point::<NaD>::origin(),
-                    &resolution,
-                )
-                .coords
-                .zip_map(&resolution.coords, |coord, resolution_coord| {
-                    coord - resolution_coord * 0.5
-                }),
+            min: converter::point_from_cell_n(
+                &cell_bounds.min,
+                &Point::<NaD>::origin(),
+                &resolution,
             ),
-            max: Point::<NaD>::from(
-                converter::point_from_cell_n(
-                    &cell_bounds.max,
-                    &Point::<NaD>::origin(),
-                    &resolution,
-                )
-                .coords
-                .zip_map(&resolution.coords, |coord, resolution_coord| {
-                    coord - resolution_coord * 0.5
-                }),
+            max: converter::point_from_cell_n(
+                &cell_bounds.max,
+                &Point::<NaD>::origin(),
+                &resolution,
             ),
         }
     }

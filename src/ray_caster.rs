@@ -228,7 +228,7 @@ mod tests {
         let bounds = kuba::bounds2![[0.0, 0.0], [0.4, 0.4]];
         let resolution = 0.1;
         let max_len = 0.5;
-        let origin = kuba::point2![0.01, 0.0];
+        let origin = kuba::point2![0.0, 0.0];
         let end = kuba::point2![0.31, 0.3];
         let (ray_cells, end_cell) =
             kuba::ray_caster::cast_ray(&origin, &end, &bounds, resolution, max_len);
@@ -279,11 +279,11 @@ mod tests {
             kuba::ray_caster::cast_ray(&origin, &end, &bounds, resolution, max_len);
         let expected_cells = vec![
             kuba::cell2![3, 0],
-            kuba::cell2![2, 0],
+            kuba::cell2![3, 1],
             kuba::cell2![2, 1],
-            kuba::cell2![1, 1],
+            kuba::cell2![2, 2],
             kuba::cell2![1, 2],
-            kuba::cell2![0, 2],
+            kuba::cell2![1, 3],
         ];
         assert_eq!(ray_cells, expected_cells);
         assert_eq!(end_cell, Some(kuba::cell2![0, 3]));
@@ -294,11 +294,11 @@ mod tests {
             kuba::ray_caster::cast_ray(&origin, &end, &bounds, resolution, max_len);
         let expected_cells = vec![
             kuba::cell2![0, 3],
-            kuba::cell2![0, 2],
+            kuba::cell2![1, 3],
             kuba::cell2![1, 2],
-            kuba::cell2![1, 1],
+            kuba::cell2![2, 2],
             kuba::cell2![2, 1],
-            kuba::cell2![2, 0],
+            kuba::cell2![3, 1],
         ];
         assert_eq!(ray_cells, expected_cells);
         assert_eq!(end_cell, Some(kuba::cell2![3, 0]));
@@ -369,14 +369,14 @@ mod tests {
             kuba::ray_caster::cast_ray(&origin, &end, &bounds, resolution, max_len);
         let expected_cells = vec![
             kuba::cell3![3, 0, 3],
-            kuba::cell3![3, 0, 2],
-            kuba::cell3![2, 0, 2],
+            kuba::cell3![3, 1, 3],
+            kuba::cell3![3, 1, 2],
             kuba::cell3![2, 1, 2],
-            kuba::cell3![2, 1, 1],
-            kuba::cell3![1, 1, 1],
+            kuba::cell3![2, 2, 2],
+            kuba::cell3![2, 2, 1],
             kuba::cell3![1, 2, 1],
-            kuba::cell3![1, 2, 0],
-            kuba::cell3![0, 2, 0],
+            kuba::cell3![1, 3, 1],
+            kuba::cell3![1, 3, 0],
         ];
         assert_eq!(ray_cells, expected_cells);
         assert_eq!(end_cell, Some(kuba::cell3![0, 3, 0]));
@@ -387,14 +387,14 @@ mod tests {
             kuba::ray_caster::cast_ray(&origin, &end, &bounds, resolution, max_len);
         let expected_cells = vec![
             kuba::cell3![0, 3, 0],
-            kuba::cell3![0, 2, 0],
-            kuba::cell3![0, 2, 1],
+            kuba::cell3![0, 3, 1],
+            kuba::cell3![1, 3, 1],
             kuba::cell3![1, 2, 1],
-            kuba::cell3![1, 1, 1],
-            kuba::cell3![1, 1, 2],
+            kuba::cell3![1, 2, 2],
+            kuba::cell3![2, 2, 2],
             kuba::cell3![2, 1, 2],
-            kuba::cell3![2, 0, 2],
-            kuba::cell3![2, 0, 3],
+            kuba::cell3![2, 1, 3],
+            kuba::cell3![3, 1, 3],
         ];
         assert_eq!(ray_cells, expected_cells);
         assert_eq!(end_cell, Some(kuba::cell3![3, 0, 3]));
@@ -520,7 +520,7 @@ mod tests {
     fn cast_ray2_max_len() {
         let bounds = kuba::bounds2![[0.0, 0.0], [0.4, 0.4]];
         let resolution = 0.1;
-        let max_len = 0.42;
+        let max_len = 0.28;
         let origin = kuba::point2![0.01, 0.0];
         let end = kuba::point2![0.31, 0.3];
         let (ray_cells, end_cell) =
@@ -540,7 +540,7 @@ mod tests {
     fn cast_ray3_max_len() {
         let bounds = kuba::bounds3![[0.0, 0.0, 0.0], [0.4, 0.4, 0.4]];
         let resolution = 0.1;
-        let max_len = 0.54;
+        let max_len = 0.35;
         let origin = kuba::point3![0.01, 0.0, 0.0];
         let end = kuba::point3![0.31, 0.3, 0.3];
         let (ray_cells, end_cell) =
@@ -553,7 +553,6 @@ mod tests {
             kuba::cell3![2, 1, 1],
             kuba::cell3![2, 1, 2],
             kuba::cell3![2, 2, 2],
-            kuba::cell3![3, 2, 2],
         ];
         assert_eq!(ray_cells, expected_cells);
         assert_eq!(end_cell, None);
